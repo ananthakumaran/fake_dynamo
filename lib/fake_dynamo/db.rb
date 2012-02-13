@@ -30,6 +30,7 @@ module FakeDynamo
       table.describe_table
     end
 
+    private
     def find_table(table_name)
       tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"
     end

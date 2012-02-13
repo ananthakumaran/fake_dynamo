@@ -25,8 +25,19 @@ module FakeDynamo
       subject { DB.new }
 
       it 'should describe table' do
-        subject.create_table(data)
-        subject.describe_table({'TableName' => 'Table1'})
+        table = subject.create_table(data)
+        description = subject.describe_table({'TableName' => 'Table1'})
+        description.should include({
+          "ItemCount"=>0,
+          "TableSizeBytes"=>0})
+      end
+
+      it 'should fail on unavailable table' do
+        expect { subject.describe_table({'TableName' => 'Table1'}) }.to raise_error(ResourceNotFoundException, /table1 not found/i)
+      end
+
+      it 'should fail on invalid payload' do
+        expect { subject.process('DescribeTable', {}) }.to raise_error(ValidationException, /null/)
       end
     end
   end
