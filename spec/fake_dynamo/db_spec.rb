@@ -13,12 +13,21 @@ module FakeDynamo
     end
 
     it 'should not allow to create duplicate tables' do
-      subject.CreateTable(data)
-      expect { subject.CreateTable(data) }.to raise_error(ResourceInUseException, /duplicate/i)
+      subject.create_table(data)
+      expect { subject.create_table(data) }.to raise_error(ResourceInUseException, /duplicate/i)
     end
 
-    it 'should fail on invalid operation' do
-      expect { subject.process('invalid', data) }.to raise_error(InvalidParameterValueException, /invalid/i)
+    it 'should fail on unknown operation' do
+      expect { subject.process('unknown', data) }.to raise_error(UnknownOperationException, /unknown/i)
+    end
+
+    context 'DescribeTable' do
+      subject { DB.new }
+
+      it 'should describe table' do
+        subject.create_table(data)
+        subject.describe_table({'TableName' => 'Table1'})
+      end
     end
   end
 end

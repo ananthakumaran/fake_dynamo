@@ -4,7 +4,7 @@ module FakeDynamo
     include Validation
 
     attr_accessor :creation_date_time, :read_capacity_units, :write_capacity_units,
-                  :name, :status, :primary_key
+                  :name, :status, :primary_key, :items, :size_bytes
 
 
     validates_presence_of :creation_date_time, :read_capacity_units, :write_capacity_units,
@@ -35,10 +35,19 @@ module FakeDynamo
       }
     end
 
+    def describe_table
+      description.merge({
+        'ItemCount' => items.count,
+        'TableSizeBytes' => size_bytes
+      })
+    end
+
     private
     def init
       @creation_date_time = Time.now.to_i
       @status = 'ACTIVE'
+      @items = []
+      @size_bytes = 0
     end
 
     def extract_values(data)

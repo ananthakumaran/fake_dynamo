@@ -4,7 +4,7 @@ module FakeDynamo
     class_attribute :description, :type, :status
 
     self.type = 'com.amazon.dynamodb.v20111205'
-    self.status = 500
+    self.status = 400
 
     attr_reader :detail
 
@@ -29,12 +29,17 @@ module FakeDynamo
     end
   end
 
+  class UnknownOperationException < Error
+    self.type = 'com.amazon.coral.service'
+    self.description = ''
+  end
+
   class InvalidParameterValueException < Error
     self.description = 'invalid parameter'
   end
 
   class ResourceNotFoundException < Error
-    self.description = 'resource not found'
+    self.description = 'Requested resource not found'
   end
 
   class ResourceInUseException < Error

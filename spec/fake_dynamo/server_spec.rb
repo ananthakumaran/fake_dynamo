@@ -40,7 +40,7 @@ module FakeDynamo
     it "should handle error properly" do
       post '/', {'x' => 'y'}.to_json, 'HTTP_x-amz-target' => 'DynamoDB_20111205.CreateTable'
       last_response.should_not be_ok
-      last_response.status.should eq(500)
+      last_response.status.should eq(400)
     end
 
   end
