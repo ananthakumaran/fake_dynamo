@@ -39,6 +39,20 @@ module FakeDynamo
       it 'should fail on invalid payload' do
         expect { subject.process('DescribeTable', {}) }.to raise_error(ValidationException, /null/)
       end
+
+      it "should delete table" do
+        subject.create_table(data)
+        response = subject.delete_table(data)
+        subject.tables.should be_empty
+        response['TableDescription']['TableStatus'].should == 'DELETING'
+      end
+
+      it "should not allow to delete the same table twice" do
+        subject.create_table(data)
+        subject.delete_table(data)
+        expect { subject.delete_table(data) }.to raise_error(ResourceNotFoundException, /table1 not found/i)
+      end
+
     end
   end
 end

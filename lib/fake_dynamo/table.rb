@@ -31,6 +31,11 @@ module FakeDynamo
       })
     end
 
+    def delete
+      @status = 'DELETING'
+      description
+    end
+
     private
     def init
       @creation_date_time = Time.now.to_i

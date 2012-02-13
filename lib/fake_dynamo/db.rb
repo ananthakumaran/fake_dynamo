@@ -25,9 +25,15 @@ module FakeDynamo
     end
 
     def describe_table(data)
+      table = find_table(data['TableName'])
+      table.describe_table
+    end
+
+    def delete_table(data)
       table_name = data['TableName']
       table = find_table(table_name)
-      table.describe_table
+      tables.delete(table_name)
+      table.delete
     end
 
     private
