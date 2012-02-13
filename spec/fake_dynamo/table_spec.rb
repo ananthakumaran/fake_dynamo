@@ -17,5 +17,18 @@ module FakeDynamo
 
     its(:status) { should == 'ACTIVE' }
     its(:creation_date_time) { should_not be_nil }
+
+    context '#update' do
+      subject do
+        table = Table.new(data)
+        table.update(10, 15)
+        table
+      end
+
+      its(:read_capacity_units) { should == 10 }
+      its(:write_capacity_units) { should == 15 }
+      its(:last_increased_time) { should be_a_kind_of(Fixnum) }
+      its(:last_decreased_time) { should be_nil }
+    end
   end
 end

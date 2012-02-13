@@ -85,5 +85,24 @@ module FakeDynamo
         expect { subject.process('ListTables', {'Limit' => 's'}) }.to raise_error(ValidationException)
       end
     end
+
+    context 'UpdateTable' do
+
+      it 'should update throughput' do
+        subject.create_table(data)
+        response = subject.update_table({'TableName' => 'Table1',
+                               'ProvisionedThroughput' => {
+                                 'ReadCapacityUnits' => 7,
+                                 'WriteCapacityUnits' => 15
+                               }})
+
+        response['TableDescription'].should include({'TableStatus' => 'UPDATING'})
+      end
+
+      it 'should handle validation' do
+        subject.create_table(data)
+        expect { subject.process('UpdateTable', {'TableName' => 'Table1'}) }.to raise_error(ValidationException, /null/)
+      end
+    end
   end
 end

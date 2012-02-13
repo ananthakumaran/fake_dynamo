@@ -60,6 +60,11 @@ module FakeDynamo
       response
     end
 
+    def update_table(data)
+      table = find_table(data['TableName'])
+      table.update(data['ProvisionedThroughput']['ReadCapacityUnits'], data['ProvisionedThroughput']['WriteCapacityUnits'])
+    end
+
     private
     def find_table(table_name)
       tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"
