@@ -51,6 +51,8 @@ module FakeDynamo
           add_errors("The parameter '#{param(attribute, parents)}' must be a string") unless data.kind_of? String
         when :long
           add_errors("The parameter '#{param(attribute, parents)}' must be a long") unless data.kind_of? Fixnum
+        when :integer
+          add_errors("The parameter '#{param(attribute, parents)}' must be a integer") unless data.kind_of? Fixnum
         when Hash
           case constrain.keys.first
           when :pattern

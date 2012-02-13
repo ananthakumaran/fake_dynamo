@@ -22,8 +22,6 @@ module FakeDynamo
     end
 
     context 'DescribeTable' do
-      subject { DB.new }
-
       it 'should describe table' do
         table = subject.create_table(data)
         description = subject.describe_table({'TableName' => 'Table1'})
@@ -39,7 +37,9 @@ module FakeDynamo
       it 'should fail on invalid payload' do
         expect { subject.process('DescribeTable', {}) }.to raise_error(ValidationException, /null/)
       end
+    end
 
+    context 'DeleteTable' do
       it "should delete table" do
         subject.create_table(data)
         response = subject.delete_table(data)
@@ -52,7 +52,38 @@ module FakeDynamo
         subject.delete_table(data)
         expect { subject.delete_table(data) }.to raise_error(ResourceNotFoundException, /table1 not found/i)
       end
+    end
 
+    context 'ListTable' do
+      before :each do
+        (1..5).each do |i|
+          data['TableName'] = "Table#{i}"
+          subject.create_table(data)
+        end
+      end
+
+      it "should list all table" do
+        result = subject.list_tables({})
+        result.should eq({"TableNames"=>["Table1", "Table2", "Table3", "Table4", "Table5"]})
+      end
+
+      it 'should handle limit and exclusive_start_table_name' do
+        result = subject.list_tables({'Limit' => 3,
+                                       'ExclusiveStartTableName' => 'Table1'})
+        result.should eq({'TableNames'=>["Table2", "Table3", "Table4"],
+                           'LastEvaluatedTableName' => "Table4"})
+
+        result = subject.list_tables({'Limit' => 3,
+                                       'ExclusiveStartTableName' => 'Table2'})
+        result.should eq({'TableNames' => ['Table3', 'Table4', 'Table5']})
+
+        result = subject.list_tables({'ExclusiveStartTableName' => 'blah'})
+        result.should eq({"TableNames"=>["Table1", "Table2", "Table3", "Table4", "Table5"]})
+      end
+
+      it 'should validate payload' do
+        expect { subject.process('ListTables', {'Limit' => 's'}) }.to raise_error(ValidationException)
+      end
     end
   end
 end

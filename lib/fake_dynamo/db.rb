@@ -36,6 +36,30 @@ module FakeDynamo
       table.delete
     end
 
+    def list_tables(data)
+      start_table = data['ExclusiveStartTableName']
+      limit = data['Limit']
+
+      all_tables = tables.keys
+      start = 0
+
+      if start_table
+        if i = all_tables.index(start_table)
+          start = i + 1
+        end
+      end
+
+      limit ||= all_tables.size
+      result_tables = all_tables[start, limit]
+      response = { 'TableNames' => result_tables }
+
+      if (start + limit ) < all_tables.size
+        last_table = all_tables[start + limit -1]
+        response.merge!({ 'LastEvaluatedTableName' => last_table })
+      end
+      response
+    end
+
     private
     def find_table(table_name)
       tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"
