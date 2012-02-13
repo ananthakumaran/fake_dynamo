@@ -1,7 +1,7 @@
 require 'fake_dynamo/version'
 require 'json'
+require 'active_support/inflector'
 require 'active_support/core_ext/class/attribute'
-require 'active_model'
 require 'fake_dynamo/exceptions'
 require 'fake_dynamo/validation'
 require 'fake_dynamo/attribute'

@@ -1,15 +1,10 @@
 module FakeDynamo
   class PrimaryKey
 
-    include ActiveModel::Validations
-    include Validation
-
     attr_accessor :hash_key, :range_key
-    validates_presence_of :hash_key
 
     def initialize(data)
       extract_values(data)
-      validate!
     end
 
     def description

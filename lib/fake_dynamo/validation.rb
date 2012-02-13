@@ -3,25 +3,26 @@ require 'yaml'
 module FakeDynamo
   module Validation
 
-    extend ActiveSupport::Concern
-    include ActiveModel::Validations
-
-
-    def validate!
-      if invalid?
-        raise ValidationException, errors.full_messages.join(', ')
+    def validate!(&block)
+      @api_errors = []
+      yield
+      unless @api_errors.empty?
+        plural = @api_errors.size == 1 ? '' : 's'
+        message = "#{@api_errors.size} error#{plural} detected: #{@api_errors.join('; ')}"
+        raise ValidationException, message
       end
     end
 
 
     def add_errors(message)
-      @api_errors ||= []
       @api_errors << message
     end
 
     def validate_payload(operation, data)
-      validate_operation(operation)
-      validate_input(operation, data)
+      validate! do
+        validate_operation(operation)
+        validate_input(operation, data)
+      end
     end
 
     def validate_operation(operation)
@@ -56,6 +57,11 @@ module FakeDynamo
             pattern = constrain[:pattern]
             unless data =~ pattern
               add_errors("The parameter '#{param(attribute, parents)}' should match the pattern #{pattern}")
+            end
+          when :within
+            range = constrain[:within]
+            unless range.include? data.size
+              add_errors("The parameter '#{param(attribute, parents)}' value '#{data}' should be within #{range} characters")
             end
           when :structure
             structure = constrain[:structure]

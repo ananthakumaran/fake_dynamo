@@ -1,23 +1,12 @@
 module FakeDynamo
   class Table
 
-    include Validation
-
     attr_accessor :creation_date_time, :read_capacity_units, :write_capacity_units,
                   :name, :status, :primary_key, :items, :size_bytes
-
-
-    validates_presence_of :creation_date_time, :read_capacity_units, :write_capacity_units,
-                          :name, :status, :primary_key
-    validates_format_of :name, :with => /[a-zA-Z0-9_.-]+/
-    validates_length_of :name, :within => 3..255
-
-    validates_numericality_of :read_capacity_units, :write_capacity_units
 
     def initialize(data)
       extract_values(data)
       init
-      validate!
     end
 
     def description
