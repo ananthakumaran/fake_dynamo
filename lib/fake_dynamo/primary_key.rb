@@ -16,7 +16,6 @@ module FakeDynamo
 
     private
     def extract_values(data)
-      raise ValidationException, "'KeySchema' param is required" unless data
       @hash_key = Attribute.from_data(data['HashKeyElement'])
       if range_key_element = data['RangeKeyElement']
         @range_key = Attribute.from_data(range_key_element)

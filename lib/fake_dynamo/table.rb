@@ -46,7 +46,6 @@ module FakeDynamo
     end
 
     def set_throughput(throughput)
-      raise ValidationException, "'ProvisionThoughput' param is required" unless throughput
       @read_capacity_units = throughput['ReadCapacityUnits']
       @write_capacity_units = throughput['WriteCapacityUnits']
     end

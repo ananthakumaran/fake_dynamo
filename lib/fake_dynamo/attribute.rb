@@ -15,7 +15,6 @@ module FakeDynamo
 
     class << self
       def from_data(data)
-        raise ValidationException, 'KeySchema should have HashKeyElement' unless data
         Attribute.new(data['AttributeName'], nil, data['AttributeType'])
       end
     end

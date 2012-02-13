@@ -35,6 +35,5 @@ module FakeDynamo
       end
     end
 
-
   end
 end
