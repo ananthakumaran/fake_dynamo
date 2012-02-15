@@ -30,5 +30,82 @@ module FakeDynamo
       its(:last_increased_time) { should be_a_kind_of(Fixnum) }
       its(:last_decreased_time) { should be_nil }
     end
+
+    context '#put_item' do
+      it 'should fail if hash key is not present' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                             'AttributeName2' => { 'S' => "test" }
+                             }})
+        end.to raise_error(ValidationException, /missing.*item/i)
+      end
+
+      it 'should fail if range key is not present' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" }
+                             }})
+        end.to raise_error(ValidationException, /missing.*item/i)
+      end
+
+      it 'should fail on type mismatch' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'N' => "test" },
+                               'AttributeName2' => { 'N' => 11 }
+                             }})
+        end.to raise_error(ValidationException, /mismatch/i)
+      end
+
+      it 'should putitem in the table' do
+        subject.put_item({ 'TableName' => 'Table1',
+                           'Item' => {
+                             'AttributeName1' => { 'S' => "test" },
+                             'AttributeName2' => { 'N' => 11 },
+                             'AttributeName3' => { 'S' => "another" }
+                           }})
+        subject.items.size.should == 1
+      end
+
+      context 'Expected' do
+        let(:item) do
+          { 'TableName' => 'Table1',
+            'Item' => {
+              'AttributeName1' => { 'S' => "test" },
+              'AttributeName2' => { 'N' => 11 },
+              'AttributeName3' => { 'S' => "another" }
+            }}
+        end
+
+        subject do
+          table = Table.new(data)
+          table.put_item(item)
+          table
+        end
+
+        it 'should check condition' do
+          [[{}, /set to null/],
+           [{'Exists' => true}, /set to true/],
+           [{'Exists' => false}],
+           [{'Value' => { 'S' => 'xxx' } }],
+           [{'Value' => { 'S' => 'xxx' }, 'Exists' => true}],
+           [{'Value' => { 'S' => 'xxx' }, 'Exists' => false}, /cannot expect/i]].each do |value, message|
+
+            op = lambda {
+              subject.put_item(item.merge({'Expected' => { 'AttributeName3' => value }}))
+            }
+
+            if message
+              expect(&op).to raise_error(ValidationException, message)
+            else
+              expect(&op).to raise_error(ConditionalCheckFailedException)
+            end
+          end
+        end
+      end
+    end
   end
 end

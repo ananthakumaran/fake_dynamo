@@ -17,6 +17,26 @@ module FakeDynamo
       def from_data(data)
         Attribute.new(data['AttributeName'], nil, data['AttributeType'])
       end
+
+      def from_hash(name, hash)
+        Attribute.new(name, hash.values.first, hash.keys.first)
+      end
+    end
+
+    def ==(attribute)
+      @name == attribute.name &&
+        @value == attribute.value &&
+        @type == attribute.type
+    end
+
+    def eql?(attribute)
+      return false unless attribute.kind_of? Attribute
+
+      self == attribute
+    end
+
+    def hash
+      name.hash ^ value.hash ^ type.hash
     end
   end
 end

@@ -98,5 +98,26 @@ module FakeDynamo
       File.join File.expand_path(File.dirname(__FILE__)), 'api.yml'
     end
 
+    def validate_type(value, attribute)
+      if attribute.kind_of?(Attribute)
+        expected_type = value.keys.first
+        if expected_type != attribute.type
+          raise ValidationException, "Type mismatch for key #{attribute.name}"
+        end
+      else
+        raise 'Unknown attribute'
+      end
+    end
+
+    def validate_key_schema(data, key_schema)
+      key = data[key_schema.hash_key.name] or raise ValidationException, "Missing the key #{key_schema.hash_key.name} in the item"
+      validate_type(key, key_schema.hash_key)
+
+      if key_schema.range_key
+        range_key = data[key_schema.range_key.name] or raise ValidationException, "Missing the key #{key_schema.hash_key.name} in the item"
+        validate_type(range_key, key_schema.range_key)
+      end
+    end
+
   end
 end

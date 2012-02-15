@@ -1,5 +1,5 @@
 module FakeDynamo
-  class PrimaryKey
+  class KeySchema
 
     attr_accessor :hash_key, :range_key
 

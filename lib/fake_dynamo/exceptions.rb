@@ -50,4 +50,8 @@ module FakeDynamo
     self.description = 'Validation error detected'
     self.type = 'com.amazon.coral.validate'
   end
+
+  class ConditionalCheckFailedException < Error
+    self.description = 'The conditional request failed'
+  end
 end
