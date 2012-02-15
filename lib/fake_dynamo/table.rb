@@ -73,11 +73,19 @@ module FakeDynamo
     def put_item(data)
       item = Item.new(data['Item'], key_schema)
       old_item = @items[item.key]
-      check_conditions(old_item, data['Expected'], item)
+      check_conditions(old_item, data['Expected'])
       @items[item.key] = item
+
+      response = { 'ConsumedCapacityUnits' => 1 }
+
+      if data['ReturnValues'] == 'ALL_OLD' and old_item
+        response.merge!(old_item.data)
+      end
+
+      response
     end
 
-    def check_conditions(old_item, conditions, item)
+    def check_conditions(old_item, conditions)
       return unless conditions
 
       conditions.each do |name, predicate|

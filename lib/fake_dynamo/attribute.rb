@@ -13,14 +13,8 @@ module FakeDynamo
       }
     end
 
-    class << self
-      def from_data(data)
-        Attribute.new(data['AttributeName'], nil, data['AttributeType'])
-      end
-
-      def from_hash(name, hash)
-        Attribute.new(name, hash.values.first, hash.keys.first)
-      end
+    def data
+      { @name => { @type => @value } }
     end
 
     def ==(attribute)
@@ -37,6 +31,16 @@ module FakeDynamo
 
     def hash
       name.hash ^ value.hash ^ type.hash
+    end
+
+    class << self
+      def from_data(data)
+        Attribute.new(data['AttributeName'], nil, data['AttributeType'])
+      end
+
+      def from_hash(name, hash)
+        Attribute.new(name, hash.values.first, hash.keys.first)
+      end
     end
   end
 end

@@ -31,6 +31,14 @@ module FakeDynamo
       primary.hash ^ range.hash
     end
 
+    def data
+      result = @primary.data
+      if @range
+        result.merge!(@range.data)
+      end
+      result
+    end
+
     private
     def create_attribute(key, data)
       name = key.name

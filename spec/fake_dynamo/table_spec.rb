@@ -70,7 +70,7 @@ module FakeDynamo
         subject.items.size.should == 1
       end
 
-      context 'Expected' do
+      context 'Expected & ReturnValues' do
         let(:item) do
           { 'TableName' => 'Table1',
             'Item' => {
@@ -104,6 +104,19 @@ module FakeDynamo
               expect(&op).to raise_error(ConditionalCheckFailedException)
             end
           end
+        end
+
+        it 'should give default response' do
+          item['Item']['AttributeName3'] = { 'S' => "new" }
+          subject.put_item(item).should include({ 'ConsumedCapacityUnits' => 1 })
+        end
+
+        it 'should send old item' do
+          old_item = Utils.deep_copy(item)
+          new_item = Utils.deep_copy(item)
+          new_item['Item']['AttributeName3'] = { 'S' => "new" }
+          new_item.merge!({'ReturnValues' => 'ALL_OLD'})
+          subject.put_item(new_item)['Attributes'].should == old_item['Item']
         end
       end
     end

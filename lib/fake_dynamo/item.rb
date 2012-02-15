@@ -8,13 +8,22 @@ module FakeDynamo
       @attributes = {}
       data.each do |name, value|
         unless key[name]
-          @attributes[name] = Value.new(value.keys.first, value.values.first)
+          @attributes[name] = Attribute.from_hash(name, value)
         end
       end
     end
 
     def [](name)
       attributes[name] or key[name]
+    end
+
+    def data
+      result = { 'Attributes' => {} }
+      result['Attributes'].merge!(key.data)
+      @attributes.each do |name, attribute|
+        result['Attributes'].merge!(attribute.data)
+      end
+      result
     end
   end
 end
