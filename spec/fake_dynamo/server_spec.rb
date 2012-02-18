@@ -26,19 +26,19 @@ module FakeDynamo
     let(:server) { get_server(app) }
 
     it "should extract_operation" do
-      server.extract_operation('HTTP_x-amz-target' => 'DynamoDB_20111205.CreateTable').should eq('CreateTable')
+      server.extract_operation('HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable').should eq('CreateTable')
       expect {
-        server.extract_operation('HTTP_x-amz-target' => 'FakeDB_20111205.CreateTable')
-      }.to raise_error(InvalidParameterValueException)
+        server.extract_operation('HTTP_X_AMZ_TARGET' => 'FakeDB_20111205.CreateTable')
+      }.to raise_error(UnknownOperationException)
     end
 
     it "should send operation to db" do
-      post '/', data.to_json, 'HTTP_x-amz-target' => 'DynamoDB_20111205.CreateTable'
+      post '/', data.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable'
       last_response.should be_ok
     end
 
     it "should handle error properly" do
-      post '/', {'x' => 'y'}.to_json, 'HTTP_x-amz-target' => 'DynamoDB_20111205.CreateTable'
+      post '/', {'x' => 'y'}.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable'
       last_response.should_not be_ok
       last_response.status.should eq(400)
     end

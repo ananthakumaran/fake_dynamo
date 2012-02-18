@@ -12,6 +12,7 @@ module FakeDynamo
       if range_key
         description['RangeKeyElement'] = range_key.description
       end
+      description
     end
 
     private

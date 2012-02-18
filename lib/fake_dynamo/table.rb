@@ -32,6 +32,10 @@ module FakeDynamo
       })
     end
 
+    def activate
+      @status = 'ACTIVE'
+    end
+
     def delete
       @status = 'DELETING'
       description
@@ -141,7 +145,7 @@ module FakeDynamo
     private
     def init
       @creation_date_time = Time.now.to_i
-      @status = 'ACTIVE'
+      @status = 'CREATING'
       @items = {}
       @size_bytes = 0
     end

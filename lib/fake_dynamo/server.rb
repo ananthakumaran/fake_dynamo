@@ -11,22 +11,27 @@ module FakeDynamo
       begin
         data = JSON.parse(request.body.read)
         operation = extract_operation(request.env)
+        puts "operation #{operation}"
+        puts "data"
+        pp data
         response = db.process(operation, data)
       rescue Error => e
         response, status = e.response, e.status
       end
+      puts "response"
+      pp response
       [status, response.to_json]
     end
 
     def db
-      @db ||= DB.new
+      DB.instance
     end
 
     def extract_operation(env)
-      if env['HTTP_x-amz-target'] =~ /DynamoDB_\d+\.([a-zA-z]+)/
+      if env['HTTP_X_AMZ_TARGET'] =~ /DynamoDB_\d+\.([a-zA-z]+)/
         $1
       else
-        raise InvalidParameterValueException
+        raise UnknownOperationException
       end
     end
   end

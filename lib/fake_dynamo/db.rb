@@ -5,6 +5,12 @@ module FakeDynamo
 
     attr_reader :tables
 
+    class << self
+      def instance
+        @db ||= DB.new
+      end
+    end
+
     def initialize
       @tables = {}
     end
@@ -21,7 +27,9 @@ module FakeDynamo
 
       table = Table.new(data)
       tables[table_name] = table
-      table.description
+      response = table.description
+      table.activate
+      response
     end
 
     def describe_table(data)

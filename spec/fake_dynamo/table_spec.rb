@@ -15,7 +15,7 @@ module FakeDynamo
 
     subject { Table.new(data) }
 
-    its(:status) { should == 'ACTIVE' }
+    its(:status) { should == 'CREATING' }
     its(:creation_date_time) { should_not be_nil }
 
     context '#update' do
