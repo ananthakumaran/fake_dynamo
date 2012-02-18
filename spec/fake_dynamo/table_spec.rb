@@ -55,7 +55,7 @@ module FakeDynamo
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
                                'AttributeName1' => { 'N' => "test" },
-                               'AttributeName2' => { 'N' => 11 }
+                               'AttributeName2' => { 'N' => '11' }
                              }})
         end.to raise_error(ValidationException, /mismatch/i)
       end
@@ -64,7 +64,7 @@ module FakeDynamo
         subject.put_item({ 'TableName' => 'Table1',
                            'Item' => {
                              'AttributeName1' => { 'S' => "test" },
-                             'AttributeName2' => { 'N' => 11 },
+                             'AttributeName2' => { 'N' => '11' },
                              'AttributeName3' => { 'S' => "another" }
                            }})
         subject.items.size.should == 1
@@ -75,7 +75,7 @@ module FakeDynamo
           { 'TableName' => 'Table1',
             'Item' => {
               'AttributeName1' => { 'S' => "test" },
-              'AttributeName2' => { 'N' => 11 },
+              'AttributeName2' => { 'N' => '11' },
               'AttributeName3' => { 'S' => "another" }
             }}
         end

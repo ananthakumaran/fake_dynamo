@@ -104,5 +104,26 @@ module FakeDynamo
         expect { subject.process('UpdateTable', {'TableName' => 'Table1'}) }.to raise_error(ValidationException, /null/)
       end
     end
+
+    context 'PutItem' do
+      subject do
+        db = DB.new
+        db.create_table(data)
+        db
+      end
+
+      let(:item) do
+        { 'TableName' => 'Table1',
+          'Item' => {
+            'AttributeName1' => { 'S' => "test" },
+            'AttributeName2' => { 'N' => '11' },
+            'AttributeName3' => { 'S' => "another" }
+          }}
+      end
+
+      it 'should delegate to table' do
+        subject.process('PutItem', item)
+      end
+    end
   end
 end

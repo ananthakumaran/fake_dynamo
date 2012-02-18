@@ -40,8 +40,10 @@ module FakeDynamo
     end
 
     def validate_spec(attribute, data, spec, parents)
-      if spec.include?(:required) and not data
-        add_errors("value null at '#{param(attribute, parents)}' failed to satisfy the constraint: Member must not be null")
+      if not data
+        if spec.include?(:required)
+          add_errors("value null at '#{param(attribute, parents)}' failed to satisfy the constraint: Member must not be null")
+        end
         return
       end
 
@@ -54,6 +56,7 @@ module FakeDynamo
         when :integer
           add_errors("The parameter '#{param(attribute, parents)}' must be a integer") unless data.kind_of? Fixnum
         when Hash
+          new_parents = parents + [attribute]
           case constrain.keys.first
           when :pattern
             pattern = constrain[:pattern]
@@ -67,9 +70,20 @@ module FakeDynamo
             end
           when :structure
             structure = constrain[:structure]
-            new_parents = parents + [attribute]
             structure.each do |attribute, spec|
               validate_spec(attribute, data[attribute], spec, new_parents)
+            end
+          when :map
+            map = constrain[:map]
+            raise "#{param(attribute, parents)} must be a Hash" unless data.kind_of? Hash
+            data.each do |key, value|
+              validate_spec(key, key, map[:key], new_parents)
+              validate_spec(key, value, map[:value], new_parents)
+            end
+          when :list
+            raise "#{param(attribute, parents)} must be a Array" unless data.kind_of? Array
+            data.each do |element|
+              validate_spec(element, element, constrain[:list], new_parents)
             end
           else
             raise "Unhandled constraint #{constrain}"
@@ -114,7 +128,7 @@ module FakeDynamo
       validate_type(key, key_schema.hash_key)
 
       if key_schema.range_key
-        range_key = data[key_schema.range_key.name] or raise ValidationException, "Missing the key #{key_schema.hash_key.name} in the item"
+        range_key = data[key_schema.range_key.name] or raise ValidationException, "Missing the key #{key_schema.range_key.name} in the item"
         validate_type(range_key, key_schema.range_key)
       end
     end
