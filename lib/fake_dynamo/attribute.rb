@@ -13,7 +13,7 @@ module FakeDynamo
       }
     end
 
-    def data
+    def as_hash
       { @name => { @type => @value } }
     end
 

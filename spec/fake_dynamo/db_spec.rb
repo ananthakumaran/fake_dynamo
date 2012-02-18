@@ -105,7 +105,7 @@ module FakeDynamo
       end
     end
 
-    context 'PutItem' do
+    context 'delegate to table' do
       subject do
         db = DB.new
         db.create_table(data)
@@ -123,6 +123,13 @@ module FakeDynamo
 
       it 'should delegate to table' do
         subject.process('PutItem', item)
+        subject.process('GetItem', {'TableName' => 'Table1',
+                                      'Key' => {
+                                        'HashKeyElement' => { 'S' => 'test' },
+                                        'RangeKeyElement' => { 'N' => '11' }
+                                      },
+                                      'AttributesToGet' => ['AttributeName3']
+                                    })
       end
     end
   end

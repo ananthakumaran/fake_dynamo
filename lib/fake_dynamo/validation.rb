@@ -133,5 +133,16 @@ module FakeDynamo
       end
     end
 
+    def validate_key_data(data, key_schema)
+      validate_type(data['HashKeyElement'], key_schema.hash_key)
+
+      if key_schema.range_key
+        range_key = data['RangeKeyElement'] or raise ValidationException, "Missing the key RangeKeyElement in the Key"
+        validate_type(range_key, key_schema.range_key)
+      elsif data['RangeKeyElement']
+        raise ValidationException, "RangeKeyElement is not present in the schema"
+      end
+    end
+
   end
 end

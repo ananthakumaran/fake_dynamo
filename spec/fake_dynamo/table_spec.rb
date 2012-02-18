@@ -120,5 +120,40 @@ module FakeDynamo
         end
       end
     end
+
+    context '#get_item' do
+      subject do
+        table = Table.new(data)
+        table.put_item({ 'TableName' => 'Table1',
+                         'Item' => {
+                           'AttributeName1' => { 'S' => "test" },
+                           'AttributeName2' => { 'N' => '11' },
+                           'AttributeName3' => { 'S' => "another" }
+                         }})
+        table
+      end
+
+      it 'should return empty when the key is not found' do
+        response = subject.get_item({'TableName' => 'Table1',
+                                      'Key' => {
+                                        'HashKeyElement' => { 'S' => 'xxx' },
+                                        'RangeKeyElement' => { 'N' => '11' }
+                                      }
+                                    })
+        response.should eq({ 'ConsumedCapacityUnits' => 1})
+      end
+
+      it 'should filter attributes' do
+        response = subject.get_item({'TableName' => 'Table1',
+                                      'Key' => {
+                                        'HashKeyElement' => { 'S' => 'test' },
+                                        'RangeKeyElement' => { 'N' => '11' }
+                                      },
+                                      'AttributesToGet' => ['AttributeName3', 'xxx']
+                                    })
+        response.should eq({ 'Item' => { 'AttributeName3' => { 'S' => 'another'}},
+                             'ConsumedCapacityUnits' => 1})
+      end
+    end
   end
 end

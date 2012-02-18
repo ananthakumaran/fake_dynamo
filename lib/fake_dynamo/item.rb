@@ -3,7 +3,7 @@ module FakeDynamo
     attr_accessor :key, :attributes
 
     def initialize(data, key_schema)
-      @key = Key.new(data, key_schema)
+      @key = Key.from_schema(data, key_schema)
 
       @attributes = {}
       data.each do |name, value|
@@ -17,11 +17,11 @@ module FakeDynamo
       attributes[name] or key[name]
     end
 
-    def data
-      result = { 'Attributes' => {} }
-      result['Attributes'].merge!(key.data)
+    def as_hash
+      result = {}
+      result.merge!(key.as_hash)
       @attributes.each do |name, attribute|
-        result['Attributes'].merge!(attribute.data)
+        result.merge!(attribute.as_hash)
       end
       result
     end

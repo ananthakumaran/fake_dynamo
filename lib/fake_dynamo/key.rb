@@ -1,16 +1,37 @@
 module FakeDynamo
   class Key
-    include Validation
+    extend Validation
 
-    attr_accessor :primary, :range, :schema
+    attr_accessor :primary, :range
 
-    def initialize(data, key_schema)
-      @schema = schema
-      validate_key_schema(data, key_schema)
-      @primary = create_attribute(key_schema.hash_key, data)
+    class << self
+      def from_data(data, key_schema)
+        key = Key.new
+        key_data = data['Key']
+        validate_key_data(key_data, key_schema)
+        key.primary = Attribute.from_hash(key_schema.hash_key.name, key_data['HashKeyElement'])
 
-      if key_schema.range_key
-        @range = create_attribute(key_schema.range_key, data)
+        if key_schema.range_key
+          key.range = Attribute.from_hash(key_schema.range_key.name, key_data['RangeKeyElement'])
+        end
+        key
+      end
+
+      def from_schema(data, key_schema)
+        key = Key.new
+        validate_key_schema(data, key_schema)
+        key.primary = create_attribute(key_schema.hash_key, data)
+
+        if key_schema.range_key
+          key.range = create_attribute(key_schema.range_key, data)
+        end
+        key
+      end
+
+      def create_attribute(key, data)
+        name = key.name
+        attr = Attribute.from_hash(name, data[name])
+        attr
       end
     end
 
@@ -31,19 +52,12 @@ module FakeDynamo
       primary.hash ^ range.hash
     end
 
-    def data
-      result = @primary.data
+    def as_hash
+      result = @primary.as_hash
       if @range
-        result.merge!(@range.data)
+        result.merge!(@range.as_hash)
       end
       result
-    end
-
-    private
-    def create_attribute(key, data)
-      name = key.name
-      attr = Attribute.from_hash(name, data[name])
-      attr
     end
   end
 end

@@ -76,13 +76,36 @@ module FakeDynamo
       check_conditions(old_item, data['Expected'])
       @items[item.key] = item
 
-      response = { 'ConsumedCapacityUnits' => 1 }
+      response = consumed_capacity
 
       if data['ReturnValues'] == 'ALL_OLD' and old_item
-        response.merge!(old_item.data)
+        response.merge!({ 'Attributes' => old_item.as_hash})
       end
 
       response
+    end
+
+    def get_item(data)
+      key = Key.from_data(data, key_schema)
+      item = @items[key]
+
+      response = consumed_capacity
+
+      if item
+        hash = item.as_hash
+        if attributes_to_get = data['AttributesToGet']
+          hash.select! do |attribute, value|
+            attributes_to_get.include? attribute
+          end
+        end
+        response.merge!('Item' => hash)
+      end
+
+      response
+    end
+
+    def consumed_capacity
+      { 'ConsumedCapacityUnits' => 1 }
     end
 
     def check_conditions(old_item, conditions)

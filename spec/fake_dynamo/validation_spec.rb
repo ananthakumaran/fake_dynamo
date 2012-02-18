@@ -35,5 +35,29 @@ module FakeDynamo
       end
     end
 
+
+    context '#validate_key_data' do
+      let(:schema) do
+        KeySchema.new({'HashKeyElement' => { 'AttributeName' => 'id', 'AttributeType' => 'S'}})
+      end
+
+      let(:schema_with_range) do
+        KeySchema.new({'HashKeyElement' => { 'AttributeName' => 'id', 'AttributeType' => 'S'},
+                        'RangeKeyElement' => { 'AttributeName' => 'time', 'AttributeType' => 'N'}})
+      end
+
+      it 'should validate the schema' do
+        [[{'HashKeyElement' => { 'N' => '1234' }}, schema, /mismatch/],
+         [{'HashKeyElement' => { 'S' => '1234' }}, schema_with_range, /missing.*range/i],
+         [{'HashKeyElement' => { 'S' => '1234' }, 'RangeKeyElement' => { 'N' => '1234'}}, schema, /not present/],
+         [{'HashKeyElement' => { 'S' => '1234' }, 'RangeKeyElement' => { 'S' => '1234'}}, schema_with_range, /mismatch/]
+        ].each do |data, schema, message|
+          expect do
+            subject.validate_key_data(data, schema)
+          end.to raise_error(ValidationException, message)
+        end
+      end
+    end
+
   end
 end
