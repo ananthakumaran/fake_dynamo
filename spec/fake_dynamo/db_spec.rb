@@ -129,7 +129,12 @@ module FakeDynamo
                                         'RangeKeyElement' => { 'N' => '11' }
                                       },
                                       'AttributesToGet' => ['AttributeName3']
-                                    })
+                        })
+        subject.process('DeleteItem', {'TableName' => 'Table1',
+                                      'Key' => {
+                                        'HashKeyElement' => { 'S' => 'test' },
+                                        'RangeKeyElement' => { 'N' => '11' }
+                          }})
       end
     end
   end

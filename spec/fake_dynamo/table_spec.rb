@@ -13,6 +13,17 @@ module FakeDynamo
       }
     end
 
+    let(:item) do
+      { 'TableName' => 'Table1',
+        'Item' => {
+          'AttributeName1' => { 'S' => "test" },
+          'AttributeName2' => { 'N' => '11' },
+          'AttributeName3' => { 'S' => "another" }
+        }}
+    end
+
+    let(:consumed_capacity) { { 'ConsumedCapacityUnits' => 1 } }
+
     subject { Table.new(data) }
 
     its(:status) { should == 'CREATING' }
@@ -61,25 +72,11 @@ module FakeDynamo
       end
 
       it 'should putitem in the table' do
-        subject.put_item({ 'TableName' => 'Table1',
-                           'Item' => {
-                             'AttributeName1' => { 'S' => "test" },
-                             'AttributeName2' => { 'N' => '11' },
-                             'AttributeName3' => { 'S' => "another" }
-                           }})
+        subject.put_item(item)
         subject.items.size.should == 1
       end
 
       context 'Expected & ReturnValues' do
-        let(:item) do
-          { 'TableName' => 'Table1',
-            'Item' => {
-              'AttributeName1' => { 'S' => "test" },
-              'AttributeName2' => { 'N' => '11' },
-              'AttributeName3' => { 'S' => "another" }
-            }}
-        end
-
         subject do
           table = Table.new(data)
           table.put_item(item)
@@ -108,7 +105,7 @@ module FakeDynamo
 
         it 'should give default response' do
           item['Item']['AttributeName3'] = { 'S' => "new" }
-          subject.put_item(item).should include({ 'ConsumedCapacityUnits' => 1 })
+          subject.put_item(item).should include(consumed_capacity)
         end
 
         it 'should send old item' do
@@ -124,12 +121,7 @@ module FakeDynamo
     context '#get_item' do
       subject do
         table = Table.new(data)
-        table.put_item({ 'TableName' => 'Table1',
-                         'Item' => {
-                           'AttributeName1' => { 'S' => "test" },
-                           'AttributeName2' => { 'N' => '11' },
-                           'AttributeName3' => { 'S' => "another" }
-                         }})
+        table.put_item(item)
         table
       end
 
@@ -140,7 +132,7 @@ module FakeDynamo
                                         'RangeKeyElement' => { 'N' => '11' }
                                       }
                                     })
-        response.should eq({ 'ConsumedCapacityUnits' => 1})
+        response.should eq(consumed_capacity)
       end
 
       it 'should filter attributes' do
@@ -153,6 +145,57 @@ module FakeDynamo
                                     })
         response.should eq({ 'Item' => { 'AttributeName3' => { 'S' => 'another'}},
                              'ConsumedCapacityUnits' => 1})
+      end
+    end
+
+    context '#delete_item' do
+      subject do
+        table = Table.new(data)
+        table.put_item(item)
+        table
+      end
+
+      let(:key) do
+        {'TableName' => 'Table1',
+          'Key' => {
+            'HashKeyElement' => { 'S' => 'test' },
+            'RangeKeyElement' => { 'N' => '11' }
+          }}
+      end
+
+      it 'should delete item' do
+        response = subject.delete_item(key)
+        response.should eq(consumed_capacity)
+      end
+
+      it 'should be idempotent' do
+        response_1 = subject.delete_item(key)
+        response_2 = subject.delete_item(key)
+
+        response_1.should == response_2
+      end
+
+      it 'should check conditions' do
+        expect do
+          subject.delete_item(key.merge({'Expected' =>
+                                          {'AttributeName3' => { 'Exists' => false }}}))
+        end.to raise_error(ConditionalCheckFailedException)
+
+        response = subject.delete_item(key.merge({'Expected' =>
+                                                   {'AttributeName3' =>
+                                                     {'Value' => { 'S' => 'another'}}}}))
+        response.should eq(consumed_capacity)
+
+        expect do
+          subject.delete_item(key.merge({'Expected' =>
+                                          {'AttributeName3' =>
+                                            {'Value' => { 'S' => 'another'}}}}))
+        end.to raise_error(ConditionalCheckFailedException)
+      end
+
+      it 'should return old value' do
+        response = subject.delete_item(key.merge('ReturnValues' => 'ALL_OLD'))
+        response.should eq(consumed_capacity.merge({'Attributes' => item['Item']}))
       end
     end
   end

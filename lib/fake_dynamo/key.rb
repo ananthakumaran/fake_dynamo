@@ -5,9 +5,8 @@ module FakeDynamo
     attr_accessor :primary, :range
 
     class << self
-      def from_data(data, key_schema)
+      def from_data(key_data, key_schema)
         key = Key.new
-        key_data = data['Key']
         validate_key_data(key_data, key_schema)
         key.primary = Attribute.from_hash(key_schema.hash_key.name, key_data['HashKeyElement'])
 

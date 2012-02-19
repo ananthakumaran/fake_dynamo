@@ -80,17 +80,11 @@ module FakeDynamo
       check_conditions(old_item, data['Expected'])
       @items[item.key] = item
 
-      response = consumed_capacity
-
-      if data['ReturnValues'] == 'ALL_OLD' and old_item
-        response.merge!({ 'Attributes' => old_item.as_hash})
-      end
-
-      response
+      consumed_capacity.merge!(return_values(data, old_item))
     end
 
     def get_item(data)
-      key = Key.from_data(data, key_schema)
+      key = Key.from_data(data['Key'], key_schema)
       item = @items[key]
 
       response = consumed_capacity
@@ -106,6 +100,24 @@ module FakeDynamo
       end
 
       response
+    end
+
+    def delete_item(data)
+      key = Key.from_data(data['Key'], key_schema)
+      item = @items[key]
+      check_conditions(item, data['Expected'])
+
+      @items.delete(key) if item
+      consumed_capacity.merge!(return_values(data, item))
+    end
+
+
+    def return_values(data, item)
+      if data['ReturnValues'] == 'ALL_OLD' and item
+        { 'Attributes' => item.as_hash }
+      else
+        {}
+      end
     end
 
     def consumed_capacity

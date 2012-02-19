@@ -73,13 +73,15 @@ module FakeDynamo
       table.update(data['ProvisionedThroughput']['ReadCapacityUnits'], data['ProvisionedThroughput']['WriteCapacityUnits'])
     end
 
-    def put_item(data)
-      find_table(data['TableName']).put_item(data)
+    def self.delegate_to_table(*methods)
+      methods.each do |method|
+        define_method(method) do |data|
+          find_table(data['TableName']).send(method, data)
+        end
+      end
     end
 
-    def get_item(data)
-      find_table(data['TableName']).get_item(data)
-    end
+    delegate_to_table :put_item, :get_item, :delete_item
 
     private
     def find_table(table_name)
