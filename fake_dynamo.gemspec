@@ -5,7 +5,6 @@ Gem::Specification.new do |gem|
   gem.authors       = ["Anantha Kumaran"]
   gem.email         = ["ananthakumaran@gmail.com"]
   gem.summary       = "local hosted, inmemory fake dynamodb"
-  gem.homepage      = ""
 
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")

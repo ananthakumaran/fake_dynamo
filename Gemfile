@@ -6,4 +6,6 @@ group :development do
   gem 'rack-test'
   gem 'pry'
   gem 'simplecov'
+  gem 'guard-rspec'
+  gem 'growl'
 end
