@@ -70,17 +70,13 @@ module FakeDynamo
       response
     end
 
-
-    def find_item()
-    end
-
     def put_item(data)
-      item = Item.new(data['Item'], key_schema)
+      item = Item.from_data(data['Item'], key_schema)
       old_item = @items[item.key]
       check_conditions(old_item, data['Expected'])
       @items[item.key] = item
 
-      consumed_capacity.merge!(return_values(data, old_item))
+      consumed_capacity.merge(return_values(data, old_item))
     end
 
     def get_item(data)
@@ -108,13 +104,69 @@ module FakeDynamo
       check_conditions(item, data['Expected'])
 
       @items.delete(key) if item
-      consumed_capacity.merge!(return_values(data, item))
+      consumed_capacity.merge(return_values(data, item))
     end
 
+    def update_item(data)
+      key = Key.from_data(data['Key'], key_schema)
+      item = @items[key]
+      check_conditions(item, data['Expected'])
 
-    def return_values(data, item)
-      if data['ReturnValues'] == 'ALL_OLD' and item
-        { 'Attributes' => item.as_hash }
+      unless item
+        if create_item?(data)
+          item = @items[key] = Item.from_key(key)
+        else
+          return consumed_capacity
+        end
+      end
+
+      old_hash = item.as_hash
+      data['AttributeUpdates'].each do |name, update_data|
+        item.update(name, update_data)
+      end
+
+      consumed_capacity.merge(return_values(data, old_hash, item))
+    end
+
+    def create_item?(data)
+      data['AttributeUpdates'].any? do |name, update_data|
+        action = update_data['Action']
+        ['PUT', 'ADD', nil].include? action
+      end
+    end
+
+    def updated_attributes(data)
+      data['AttributeUpdates'].map { |name, _| name }
+    end
+
+    def return_values(data, old_item, new_item={})
+      old_item ||= {}
+      old_hash = old_item.kind_of?(Item) ? old_item.as_hash : old_item
+
+      new_item ||= {}
+      new_hash = new_item.kind_of?(Item) ? new_item.as_hash : new_item
+
+
+      return_value = data['ReturnValues']
+      result = case return_value
+               when 'ALL_OLD'
+                 old_hash
+               when 'ALL_NEW'
+                 new_hash
+               when 'UPDATED_OLD'
+                 updated = updated_attributes(data)
+                 old_hash.select { |name, _| updated.include? name }
+               when 'UPDATED_NEW'
+                 updated = updated_attributes(data)
+                 new_hash.select { |name, _| updated.include? name }
+               when 'NONE', nil
+                 {}
+               else
+                 raise 'unknown return value'
+               end
+
+      unless result.empty?
+        { 'Attributes' => result }
       else
         {}
       end
@@ -145,7 +197,7 @@ module FakeDynamo
           expected_attr = Attribute.from_hash(name, value)
 
           if exist.nil? or exist
-            raise ConditionalCheckFailedException unless old_item and old_item[name] == expected_attr
+            raise ConditionalCheckFailedException unless (old_item and old_item[name] == expected_attr)
           elsif !exist # false
             raise ValidationException, "Cannot expect an attribute to have a specified value while expecting it to not exist"
           end

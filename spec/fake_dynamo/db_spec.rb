@@ -123,18 +123,33 @@ module FakeDynamo
 
       it 'should delegate to table' do
         subject.process('PutItem', item)
-        subject.process('GetItem', {'TableName' => 'Table1',
-                                      'Key' => {
-                                        'HashKeyElement' => { 'S' => 'test' },
-                                        'RangeKeyElement' => { 'N' => '11' }
-                                      },
-                                      'AttributesToGet' => ['AttributeName3']
+        subject.process('GetItem', {
+                          'TableName' => 'Table1',
+                          'Key' => {
+                            'HashKeyElement' => { 'S' => 'test' },
+                            'RangeKeyElement' => { 'N' => '11' }
+                          },
+                          'AttributesToGet' => ['AttributeName3']
                         })
-        subject.process('DeleteItem', {'TableName' => 'Table1',
-                                      'Key' => {
-                                        'HashKeyElement' => { 'S' => 'test' },
-                                        'RangeKeyElement' => { 'N' => '11' }
+        subject.process('DeleteItem', {
+                          'TableName' => 'Table1',
+                          'Key' => {
+                            'HashKeyElement' => { 'S' => 'test' },
+                            'RangeKeyElement' => { 'N' => '11' }
                           }})
+        subject.process('UpdateItem', {
+                          'TableName' => 'Table1',
+                          'Key' => {
+                            'HashKeyElement' => { 'S' => 'test' },
+                            'RangeKeyElement' => { 'N' => '11' }
+                          },
+                          'AttributeUpdates' =>
+                          {'AttributeName3' =>
+                            {'Value' => {'S' => 'AttributeValue3_New'},
+                              'Action' => 'PUT'}
+                          },
+                          'ReturnValues' => 'ALL_NEW'
+                        })
       end
     end
   end

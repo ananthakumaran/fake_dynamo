@@ -199,6 +199,7 @@
               - :boolean
       ReturnValues:
       - :string
+      - :enum: [ALL_NEW, UPDATED_OLD, ALL_OLD, NONE, UPDATED_NEW]
     :output:
     - Attributes:
       - :map:
@@ -270,6 +271,7 @@
               - :boolean
       ReturnValues:
       - :string
+      - :enum: [ALL_NEW, UPDATED_OLD, ALL_OLD, NONE, UPDATED_NEW]
     :output:
     - Attributes:
       - :map:
@@ -362,6 +364,7 @@
               - :boolean
       ReturnValues:
       - :string
+      - :enum: [ALL_NEW, UPDATED_OLD, ALL_OLD, NONE, UPDATED_NEW]
     :output:
     - Attributes:
       - :map:

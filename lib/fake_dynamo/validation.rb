@@ -68,6 +68,11 @@ module FakeDynamo
             unless range.include? data.size
               add_errors("The parameter '#{param(attribute, parents)}' value '#{data}' should be within #{range} characters")
             end
+          when :enum
+            enum = constrain[:enum]
+            unless enum.include? data
+              add_errors("Value '#{data}' at '#{param(attribute, parents)}' failed to satisfy the constraint: Member must satisfy enum values set: #{enum}")
+            end
           when :structure
             structure = constrain[:structure]
             structure.each do |attribute, spec|

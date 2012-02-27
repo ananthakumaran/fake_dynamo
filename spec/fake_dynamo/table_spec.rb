@@ -22,6 +22,14 @@ module FakeDynamo
         }}
     end
 
+    let(:key) do
+      {'TableName' => 'Table1',
+        'Key' => {
+          'HashKeyElement' => { 'S' => 'test' },
+          'RangeKeyElement' => { 'N' => '11' }
+        }}
+    end
+
     let(:consumed_capacity) { { 'ConsumedCapacityUnits' => 1 } }
 
     subject { Table.new(data) }
@@ -155,14 +163,6 @@ module FakeDynamo
         table
       end
 
-      let(:key) do
-        {'TableName' => 'Table1',
-          'Key' => {
-            'HashKeyElement' => { 'S' => 'test' },
-            'RangeKeyElement' => { 'N' => '11' }
-          }}
-      end
-
       it 'should delete item' do
         response = subject.delete_item(key)
         response.should eq(consumed_capacity)
@@ -196,6 +196,79 @@ module FakeDynamo
       it 'should return old value' do
         response = subject.delete_item(key.merge('ReturnValues' => 'ALL_OLD'))
         response.should eq(consumed_capacity.merge({'Attributes' => item['Item']}))
+      end
+    end
+
+    context '#update_item' do
+      subject do
+        table = Table.new(data)
+        table.put_item(item)
+        table
+      end
+
+      let(:put) do
+        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'S' => 'updated' },
+            'Action' => 'PUT'}}}
+      end
+
+      let(:delete) do
+        {'AttributeUpdates' => {'AttributeName3' => {'Action' => 'DELETE'}}}
+      end
+
+      it "should check conditions" do
+        expect do
+          subject.update_item(key.merge({'Expected' =>
+                                          {'AttributeName3' => { 'Exists' => false }}}))
+        end.to raise_error(ConditionalCheckFailedException)
+      end
+
+      it "should create new item if the key doesn't exist" do
+        key['Key']['HashKeyElement']['S'] = 'new'
+        subject.update_item(key.merge(put))
+        subject.get_item(key).should include( "Item"=>
+                                              {"AttributeName1"=>{"S"=>"new"},
+                                                "AttributeName2"=>{"N"=>"11"},
+                                                "AttributeName3"=>{"S"=>"updated"}})
+      end
+
+      it "shouldn't create a new item if key doesn't exist and action is delete" do
+        key['Key']['HashKeyElement']['S'] = 'new'
+        subject.update_item(key.merge(delete))
+        subject.get_item(key).should eq(consumed_capacity)
+      end
+
+      it "should handle return values" do
+        data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'updated'}}})
+      end
+    end
+
+    context '#return_values' do
+      let(:put) do
+        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'S' => 'updated' },
+              'Action' => 'PUT'}}}
+      end
+
+      it "should return values" do
+        [['ALL_OLD', {'x' => 'y'}, nil, {"Attributes" => {'x' => 'y'}}],
+         ['ALL_NEW', nil, {'x' => 'y'}, {"Attributes" => {'x' => 'y'}}],
+         ['NONE', nil, nil, {}]].each do |return_value, old_item, new_item, response|
+          data = {'ReturnValues' => return_value }
+          subject.return_values(data, old_item, new_item).should eq(response)
+        end
+        expect { subject.return_values({'ReturnValues' => 'asdf'}, nil, nil) }.to raise_error(/unknown/)
+      end
+
+      it "should return update old value" do
+        subject.put_item(item)
+        data = key.merge(put).merge({'ReturnValues' => 'UPDATED_OLD'})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'another'}}})
+      end
+
+      it "should return update new value" do
+        subject.put_item(item)
+        data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'updated'}}})
       end
     end
   end
