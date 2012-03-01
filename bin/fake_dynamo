@@ -2,4 +2,4 @@
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'fake_dynamo'
-FakeDynamo::Server.run!
+FakeDynamo::Server.run!(:port => 4567)
