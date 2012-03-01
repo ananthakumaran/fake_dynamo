@@ -2,7 +2,7 @@
 
 local hosted, inmemory fake dynamodb
 
-TODO
- * BatchGetItem
- * Query
- * Scan
+# TODO
+ *  BatchGetItem
+ *  Query
+ *  Scan
