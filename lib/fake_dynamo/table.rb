@@ -80,22 +80,26 @@ module FakeDynamo
     end
 
     def get_item(data)
-      key = Key.from_data(data['Key'], key_schema)
-      item = @items[key]
-
       response = consumed_capacity
+      if item_hash = get_raw_item(data['Key'], data['AttributesToGet'])
+        response.merge!('Item' => item_hash)
+      end
+      response
+    end
+
+    def get_raw_item(key_data, attributes_to_get)
+      key = Key.from_data(key_data, key_schema)
+      item = @items[key]
 
       if item
         hash = item.as_hash
-        if attributes_to_get = data['AttributesToGet']
+        if attributes_to_get
           hash.select! do |attribute, value|
             attributes_to_get.include? attribute
           end
         end
-        response.merge!('Item' => hash)
+        hash
       end
-
-      response
     end
 
     def delete_item(data)

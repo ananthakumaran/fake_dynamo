@@ -83,6 +83,27 @@ module FakeDynamo
 
     delegate_to_table :put_item, :get_item, :delete_item, :update_item
 
+
+    def batch_get_item(data)
+      response = {}
+
+      data['RequestItems'].each do |table_name, table_data|
+        table = find_table(table_name)
+
+        unless response[table_name]
+          response[table_name] = { 'ConsumedCapacityUnits' => 1, 'Items' => [] }
+        end
+
+        table_data['Keys'].each do |key|
+          if item_hash = table.get_raw_item(key, table_data['AttributesToGet'])
+            response[table_name]['Items'] << item_hash
+          end
+        end
+      end
+
+      { 'Responses' => response, 'UnprocessedKeys' => {}}
+    end
+
     private
     def find_table(table_name)
       tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"

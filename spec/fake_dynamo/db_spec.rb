@@ -12,6 +12,14 @@ module FakeDynamo
       }
     end
 
+    let(:user_table) do
+      {"TableName" => "User",
+        "KeySchema" =>
+        {"HashKeyElement" => {"AttributeName" => "id","AttributeType" => "S"}},
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+      }
+    end
+
     it 'should not allow to create duplicate tables' do
       subject.create_table(data)
       expect { subject.create_table(data) }.to raise_error(ResourceInUseException, /duplicate/i)
@@ -150,6 +158,87 @@ module FakeDynamo
                           },
                           'ReturnValues' => 'ALL_NEW'
                         })
+      end
+    end
+
+    context 'batch get item' do
+      subject do
+        db = DB.new
+        db.create_table(data)
+        db.create_table(user_table)
+
+        db.put_item({ 'TableName' => 'Table1',
+                      'Item' => {
+                        'AttributeName1' => { 'S' => "test" },
+                        'AttributeName2' => { 'N' => '11' },
+                        'AttributeName3' => { 'S' => "another" }
+                      }})
+
+        db.put_item({'TableName' => 'User',
+                      'Item' => { 'id' => { 'S' => '1' }}
+                    })
+        db.put_item({'TableName' => 'User',
+                      'Item' => { 'id' => { 'S' => '2' }}
+                    })
+        db
+      end
+
+      it 'should validate payload' do
+        expect {
+          subject.process('BatchGetItem', {})
+        }.to raise_error(FakeDynamo::ValidationException)
+      end
+
+      it 'should return items' do
+        response = subject.process('BatchGetItem', { 'RequestItems' =>
+                                     {
+                                       'User' => {
+                                         'Keys' => [{ 'HashKeyElement' => { 'S' => '1' }},
+                                                    { 'HashKeyElement' => { 'S' => '2' }}]
+                                       },
+                                       'Table1' => {
+                                         'Keys' => [{'HashKeyElement' => { 'S' => 'test' },
+                                                      'RangeKeyElement' => { 'N' => '11' }}],
+                                         'AttributesToGet' => ['AttributeName1', 'AttributeName2']
+                                       }
+                                     }})
+
+        response.should eq({"Responses"=>
+                             {"User"=>
+                               {"ConsumedCapacityUnits"=>1,
+                                 "Items"=>[{"id"=>{"S"=>"1"}}, {"id"=>{"S"=>"2"}}]},
+                               "Table1"=>
+                               {"ConsumedCapacityUnits"=>1,
+                                 "Items"=>
+                                 [{"AttributeName1"=>{"S"=>"test"},
+                                    "AttributeName2"=>{"N"=>"11"}}]}},
+                             "UnprocessedKeys"=>{}})
+      end
+
+      it 'should handle missing items' do
+        response = subject.process('BatchGetItem', { 'RequestItems' =>
+                                     {
+                                       'User' => {
+                                         'Keys' => [{ 'HashKeyElement' => { 'S' => '1' }},
+                                                    { 'HashKeyElement' => { 'S' => 'asd' }}]
+                                       }
+                                     }})
+        response.should eq({"Responses"=>
+                             {"User"=>
+                               {"ConsumedCapacityUnits"=>1,
+                                 "Items"=>[{"id"=>{"S"=>"1"}}]}},
+                             "UnprocessedKeys"=>{}})
+      end
+
+      it 'should fail if table not found' do
+        expect {
+          subject.process('BatchGetItem', { 'RequestItems' =>
+                            {
+                              'xxx' => {
+                                'Keys' => [{ 'HashKeyElement' => { 'S' => '1' }},
+                                           { 'HashKeyElement' => { 'S' => 'asd' }}]}
+                            }})
+        }.to raise_error(FakeDynamo::ResourceNotFoundException)
       end
     end
   end
