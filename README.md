@@ -2,6 +2,7 @@
 
 local hosted, inmemory fake dynamodb
 
-TODO
- * Query
- * Scan
+# TODO
+ *  Query
+ *  Scan
+
