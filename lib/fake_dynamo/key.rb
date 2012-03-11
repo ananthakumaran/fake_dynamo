@@ -58,5 +58,14 @@ module FakeDynamo
       end
       result
     end
+
+    def as_key_hash
+      result = { 'HashKeyElement' => { @primary.type => @primary.value }}
+      if @range
+        result.merge!({'RangeKeyElement' => { @range.type => @range.value }})
+      end
+      result
+    end
+
   end
 end

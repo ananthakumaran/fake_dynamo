@@ -557,6 +557,7 @@
                       - :string
               ComparisonOperator:
               - :string
+              - :enum: [EQ, NE, LE, LT, GE, GT, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH, IN, BETWEEN]
       ExclusiveStartKey:
       - :structure:
           HashKeyElement:
@@ -660,6 +661,7 @@
                   - :string
           ComparisonOperator:
           - :string
+          - :enum: [EQ, LE, LT, GE, GT, BEGINS_WITH, BETWEEN]
       ScanIndexForward:
       - :boolean
       ExclusiveStartKey:

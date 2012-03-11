@@ -271,5 +271,107 @@ module FakeDynamo
         subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'updated'}}})
       end
     end
+
+    context '#query' do
+      subject do
+        t = Table.new(data)
+        t.put_item(item)
+        (1..3).each do |i|
+          (1..10).each do |j|
+            item['Item']['AttributeName1']['S'] = "att#{i}"
+            item['Item']['AttributeName2']['N'] = j.to_s
+            t.put_item(item)
+          end
+        end
+        t
+      end
+
+      let(:query) do
+        {
+          'TableName' => 'Table1',
+          'Limit' => 5,
+          'HashKeyValue' => {'S' => 'att1'},
+          'RangeKeyCondition' => {
+            'AttributeValueList' => [{'N' => '1'}],
+            'ComparisonOperator' => 'GT'
+          },
+          'ScanIndexForward' => true
+        }
+      end
+
+      it 'should not allow count and attributes_to_get simutaneously' do
+        expect {
+          subject.query({'Count' => 0, 'AttributesToGet' => ['xx']})
+        }.to raise_error(ValidationException, /count/i)
+      end
+
+      it 'should not allow to query on a table without rangekey' do
+        data['KeySchema'].delete('RangeKeyElement')
+        t = Table.new(data)
+        expect {
+          t.query(query)
+        }.to raise_error(ValidationException, /key schema/)
+      end
+
+      it 'should only allow limit greater than zero' do
+        expect {
+          subject.query(query.merge('Limit' => 0))
+        }.to raise_error(ValidationException, /limit/i)
+      end
+
+      it 'should handle basic query' do
+        result = subject.query(query)
+        result['Count'].should eq(5)
+      end
+
+      it 'should handle scanindexforward' do
+        result = subject.query(query)
+        result['Items'].first['AttributeName2'].should eq({'N' => '2'})
+        result = subject.query(query.merge({'ScanIndexForward' => false}))
+        result['Items'].first['AttributeName2'].should eq({'N' => '10'})
+      end
+
+      it 'should return lastevaluated key' do
+        result = subject.query(query)
+        result['LastEvaluatedKey'] == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}
+        result = subject.query(query.merge('Limit' => 100))
+        result['LastEvaluatedKey'].should be_nil
+
+        query.delete('Limit')
+        result = subject.query(query)
+        result['LastEvaluatedKey'].should be_nil
+      end
+
+      it 'should handle exclusive start key' do
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}}))
+        result['Count'].should eq(4)
+        result['Items'].first['AttributeName2'].should eq({'N' => '7'})
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"88"}}}))
+        result['Count'].should eq(0)
+        result['Items'].should be_empty
+      end
+
+      it 'should return all elements if not rangekeycondition is given' do
+        query.delete('RangeKeyCondition')
+        result = subject.query(query)
+        result['Count'].should eq(5)
+      end
+
+      it 'should handle between operator' do
+        query['RangeKeyCondition'] = {
+          'AttributeValueList' => [{'N' => '1'}, {'N' => '4'}],
+            'ComparisonOperator' => 'BETWEEN'
+        }
+        result = subject.query(query)
+        result['Count'].should eq(4)
+      end
+
+      it 'should handle attributes_to_get' do
+        query['AttributesToGet'] = ['AttributeName1', "AttributeName2"]
+        result = subject.query(query)
+        result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'},
+                                        'AttributeName2' => { 'N' => '2' })
+      end
+    end
   end
 end

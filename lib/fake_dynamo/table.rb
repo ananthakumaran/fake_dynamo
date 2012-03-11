@@ -1,5 +1,7 @@
 module FakeDynamo
   class Table
+    include Validation
+    include Filter
 
     attr_accessor :creation_date_time, :read_capacity_units, :write_capacity_units,
                   :name, :status, :key_schema, :items, :size_bytes, :last_increased_time,
@@ -92,14 +94,18 @@ module FakeDynamo
       item = @items[key]
 
       if item
-        hash = item.as_hash
-        if attributes_to_get
-          hash.select! do |attribute, value|
-            attributes_to_get.include? attribute
-          end
-        end
-        hash
+        filter_attributes(item, attributes_to_get)
       end
+    end
+
+    def filter_attributes(item, attributes_to_get)
+      hash = item.as_hash
+      if attributes_to_get
+        hash.select! do |attribute, value|
+          attributes_to_get.include? attribute
+        end
+      end
+      hash
     end
 
     def delete_item(data)
@@ -130,6 +136,90 @@ module FakeDynamo
       end
 
       consumed_capacity.merge(return_values(data, old_hash, item))
+    end
+
+    def query(data)
+      unless key_schema.range_key
+        raise ValidationException, "Query can be performed only on a table with a HASH,RANGE key schema"
+      end
+
+      if data['Count'] and data['AttributesToGet']
+        raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the Count"
+      end
+
+      if data['Limit'] and data['Limit'] <= 0
+        raise ValidationException, "Limit failed to satisfy constraint: Member must have value greater than or equal to 1"
+      end
+
+      hash_attribute = Attribute.from_hash(key_schema.hash_key.name, data['HashKeyValue'])
+      matched_items = get_items_by_hash_key(hash_attribute)
+
+
+      forward = data.has_key?('ScanIndexForward') ? data['ScanIndexForward'] : true
+
+      if forward
+        matched_items.sort! { |a, b| a.key.range <=> b.key.range }
+      else
+        matched_items.sort! { |a, b| b.key.range <=> a.key.range }
+      end
+
+      if start_key_hash = data['ExclusiveStartKey']
+        matched_items = matched_items.drop_while { |i| i.key.as_key_hash != start_key_hash }.drop(1)
+      end
+
+      if data['RangeKeyCondition']
+        conditions = {key_schema.range_key.name => data['RangeKeyCondition']}
+      else
+        conditions = []
+      end
+
+      result, last_evaluated_item = filter(matched_items, conditions, data['Limit'], true)
+
+      response = {
+        'Count' => result.size,
+        'ConsumedCapacityUnits' => 1 }
+
+      unless data['Count']
+        response['Items'] = result.map { |r| filter_attributes(r, data['AttributesToGet']) }
+      end
+
+      if last_evaluated_item
+        response['LastEvaluatedKey'] = last_evaluated_item.key.as_key_hash
+      end
+      response
+    end
+
+
+    def filter(items, conditions, limit, fail_on_type_mismatch)
+      limit ||= -1
+      result = []
+      last_evaluated_item = nil
+      items.each do |item|
+        select = true
+        conditions.each do |attribute_name, condition|
+          value = condition['AttributeValueList']
+          comparison_op = condition['ComparisonOperator']
+          unless self.send("#{comparison_op.downcase}_filter", value, item[attribute_name], attribute_name, fail_on_type_mismatch)
+            select = false
+            break
+          end
+        end
+
+        if select
+          result << item
+          if (limit -= 1) == 0
+            last_evaluated_item = item
+            break
+          end
+        end
+      end
+      [result, last_evaluated_item]
+    end
+
+    def get_items_by_hash_key(hash_key)
+      items.values.select do |i|
+        i.key.primary == hash_key
+      end
     end
 
     def create_item?(data)

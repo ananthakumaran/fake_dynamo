@@ -55,6 +55,8 @@ module FakeDynamo
           add_errors("The parameter '#{param(attribute, parents)}' must be a long") unless data.kind_of? Fixnum
         when :integer
           add_errors("The parameter '#{param(attribute, parents)}' must be a integer") unless data.kind_of? Fixnum
+        when :boolean
+          add_errors("The parameter '#{param(attribute, parents)}' must be a boolean") unless (data.kind_of? TrueClass or data.kind_of? FalseClass)
         when Hash
           new_parents = parents + [attribute]
           case constrain.keys.first

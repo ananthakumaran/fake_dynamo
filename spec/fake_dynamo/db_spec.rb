@@ -158,6 +158,18 @@ module FakeDynamo
                           },
                           'ReturnValues' => 'ALL_NEW'
                         })
+
+        subject.process('Query', {
+                          'TableName' => 'Table1',
+                          'Limit' => 5,
+                          'Count' => true,
+                          'HashKeyValue' => {'S' => 'att1'},
+                          'RangeKeyCondition' => {
+                            'AttributeValueList' => [{'N' => '1'}],
+                            'ComparisonOperator' => 'GT'
+                          },
+                          'ScanIndexForward' => true
+                        })
       end
     end
 
