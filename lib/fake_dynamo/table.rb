@@ -27,11 +27,13 @@ module FakeDynamo
       }
     end
 
+    def size_description
+      { 'ItemCount' => items.count,
+        'TableSizeBytes' => size_bytes }
+    end
+
     def describe_table
-      description.merge({
-        'ItemCount' => items.count,
-        'TableSizeBytes' => size_bytes
-      })
+      { 'Table' => description['TableDescription'] }.merge(size_description)
     end
 
     def activate
@@ -58,7 +60,7 @@ module FakeDynamo
 
       @read_capacity_units, @write_capacity_units = read_capacity_units, write_capacity_units
 
-      response = describe_table
+      response = description.merge(size_description)
 
       if last_increased_time
         response['TableDescription']['ProvisionedThroughput']['LastIncreaseDateTime'] = @last_increased_time
