@@ -13,3 +13,16 @@ module Utils
     Marshal.load(Marshal.dump(x))
   end
 end
+
+module FakeDynamo
+  class Storage
+    def initialize
+      delete_db
+      super
+    end
+
+    def db_path
+      '/usr/local/var/fake_dynamo/test_db.fdb'
+    end
+  end
+end

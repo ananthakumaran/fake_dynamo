@@ -15,7 +15,8 @@ module FakeDynamo
         puts "data"
         pp data
         response = db.process(operation, data)
-      rescue Error => e
+        storage.persist(operation, data)
+      rescue FakeDynamo::Error => e
         response, status = e.response, e.status
       end
       puts "response"
@@ -25,6 +26,10 @@ module FakeDynamo
 
     def db
       DB.instance
+    end
+
+    def storage
+      Storage.instance
     end
 
     def extract_operation(env)

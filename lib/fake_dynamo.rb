@@ -11,5 +11,10 @@ require 'fake_dynamo/item'
 require 'fake_dynamo/key'
 require 'fake_dynamo/table'
 require 'fake_dynamo/db'
+require 'fake_dynamo/storage'
 require 'fake_dynamo/server'
 require 'pp'
+
+at_exit {
+  FakeDynamo::Storage.instance.shutdown
+}

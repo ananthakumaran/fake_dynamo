@@ -2,4 +2,5 @@
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'fake_dynamo'
+FakeDynamo::Storage.instance.load_aof
 FakeDynamo::Server.run!(:port => 4567)
