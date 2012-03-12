@@ -81,7 +81,7 @@ module FakeDynamo
       end
     end
 
-    delegate_to_table :put_item, :get_item, :delete_item, :update_item, :query
+    delegate_to_table :put_item, :get_item, :delete_item, :update_item, :query, :scan
 
 
     def batch_get_item(data)

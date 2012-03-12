@@ -333,7 +333,7 @@ module FakeDynamo
 
       it 'should return lastevaluated key' do
         result = subject.query(query)
-        result['LastEvaluatedKey'] == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}
+        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}
         result = subject.query(query.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -371,6 +371,64 @@ module FakeDynamo
         result = subject.query(query)
         result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'},
                                         'AttributeName2' => { 'N' => '2' })
+      end
+    end
+
+    context '#scan' do
+      subject do
+        t = Table.new(data)
+        (1..3).each do |i|
+          (1..10).each do |j|
+            item['Item']['AttributeName1']['S'] = "att#{i}"
+            item['Item']['AttributeName2']['N'] = j.to_s
+            t.put_item(item)
+          end
+        end
+        t
+      end
+
+      let(:scan) do
+        {
+          'TableName' => 'Table1',
+          'ScanFilter' => {
+            'AttributeName2' => {
+              'AttributeValueList' => [{'N' => '1'}],
+              'ComparisonOperator' => 'GE'
+            }
+          }
+        }
+      end
+
+      it 'should not allow count and attributes_to_get simutaneously' do
+        expect {
+          subject.scan({'Count' => 0, 'AttributesToGet' => ['xx']})
+        }.to raise_error(ValidationException, /count/i)
+      end
+
+      it 'should only allow limit greater than zero' do
+        expect {
+          subject.scan(scan.merge('Limit' => 0))
+        }.to raise_error(ValidationException, /limit/i)
+      end
+
+      it 'should handle basic scan' do
+        result = subject.scan(scan)
+        result['Count'].should eq(30)
+
+        scan['ScanFilter']['AttributeName2']['ComparisonOperator'] = 'EQ'
+        subject.scan(scan)['Count'].should eq(3)
+      end
+
+      it 'should return lastevaluated key' do
+        scan['Limit'] = 5
+        result = subject.scan(scan)
+        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"5"}}
+        result = subject.scan(scan.merge('Limit' => 100))
+        result['LastEvaluatedKey'].should be_nil
+
+        scan.delete('Limit')
+        result = subject.scan(scan)
+        result['LastEvaluatedKey'].should be_nil
       end
     end
   end

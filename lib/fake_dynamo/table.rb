@@ -143,13 +143,8 @@ module FakeDynamo
         raise ValidationException, "Query can be performed only on a table with a HASH,RANGE key schema"
       end
 
-      if data['Count'] and data['AttributesToGet']
-        raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the Count"
-      end
-
-      if data['Limit'] and data['Limit'] <= 0
-        raise ValidationException, "Limit failed to satisfy constraint: Member must have value greater than or equal to 1"
-      end
+      count_and_attributes_to_get_present?(data)
+      validate_limit(data)
 
       hash_attribute = Attribute.from_hash(key_schema.hash_key.name, data['HashKeyValue'])
       matched_items = get_items_by_hash_key(hash_attribute)
@@ -163,17 +158,15 @@ module FakeDynamo
         matched_items.sort! { |a, b| b.key.range <=> a.key.range }
       end
 
-      if start_key_hash = data['ExclusiveStartKey']
-        matched_items = matched_items.drop_while { |i| i.key.as_key_hash != start_key_hash }.drop(1)
-      end
+      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'])
 
       if data['RangeKeyCondition']
         conditions = {key_schema.range_key.name => data['RangeKeyCondition']}
       else
-        conditions = []
+        conditions = {}
       end
 
-      result, last_evaluated_item = filter(matched_items, conditions, data['Limit'], true)
+      result, last_evaluated_item, _ = filter(matched_items, conditions, data['Limit'], true)
 
       response = {
         'Count' => result.size,
@@ -189,17 +182,59 @@ module FakeDynamo
       response
     end
 
+    def scan(data)
+      count_and_attributes_to_get_present?(data)
+      validate_limit(data)
+      conditions = data['ScanFilter'] || {}
+      all_items = drop_till_start(items.values, data['ExclusiveStartKey'])
+      result, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)
+      response = {
+        'Count' => result.size,
+        'ScannedCount' => scaned_count,
+        'ConsumedCapacityUnits' => 1 }
+
+      unless data['Count']
+        response['Items'] = result.map { |r| filter_attributes(r, data['AttributesToGet']) }
+      end
+
+      if last_evaluated_item
+        response['LastEvaluatedKey'] = last_evaluated_item.key.as_key_hash
+      end
+
+      response
+    end
+
+    def count_and_attributes_to_get_present?(data)
+      if data['Count'] and data['AttributesToGet']
+        raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the Count"
+      end
+    end
+
+    def validate_limit(data)
+      if data['Limit'] and data['Limit'] <= 0
+        raise ValidationException, "Limit failed to satisfy constraint: Member must have value greater than or equal to 1"
+      end
+    end
+
+    def drop_till_start(all_items, start_key_hash)
+      if start_key_hash
+        all_items.drop_while { |i| i.key.as_key_hash != start_key_hash }.drop(1)
+      else
+        all_items
+      end
+    end
 
     def filter(items, conditions, limit, fail_on_type_mismatch)
       limit ||= -1
       result = []
       last_evaluated_item = nil
+      scaned_count = 0
       items.each do |item|
         select = true
         conditions.each do |attribute_name, condition|
           value = condition['AttributeValueList']
           comparison_op = condition['ComparisonOperator']
-          unless self.send("#{comparison_op.downcase}_filter", value, item[attribute_name], attribute_name, fail_on_type_mismatch)
+          unless self.send("#{comparison_op.downcase}_filter", value, item[attribute_name], fail_on_type_mismatch)
             select = false
             break
           end
@@ -212,8 +247,10 @@ module FakeDynamo
             break
           end
         end
+
+        scaned_count += 1
       end
-      [result, last_evaluated_item]
+      [result, last_evaluated_item, scaned_count]
     end
 
     def get_items_by_hash_key(hash_key)
