@@ -18,7 +18,7 @@ module FakeDynamo
   class Storage
     def initialize
       delete_db
-      super
+      init_db
     end
 
     def db_path
