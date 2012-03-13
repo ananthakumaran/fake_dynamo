@@ -15,3 +15,7 @@ end.parse!
 
 FakeDynamo::Storage.instance.load_aof
 FakeDynamo::Server.run!(:port => options[:port])
+
+at_exit {
+  FakeDynamo::Storage.instance.shutdown
+}

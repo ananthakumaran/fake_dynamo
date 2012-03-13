@@ -15,6 +15,3 @@ require 'fake_dynamo/storage'
 require 'fake_dynamo/server'
 require 'pp'
 
-at_exit {
-  FakeDynamo::Storage.instance.shutdown
-}
