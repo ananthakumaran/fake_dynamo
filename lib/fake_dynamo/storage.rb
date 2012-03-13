@@ -1,5 +1,10 @@
+require 'fileutils'
+require 'tempfile'
+
 module FakeDynamo
   class Storage
+
+    attr_accessor :compacted, :loaded
 
     class << self
       def instance
@@ -56,6 +61,7 @@ module FakeDynamo
     end
 
     def load_aof
+      return if @loaded
       file = File.new(db_path, 'r')
       puts "Loading fake_dynamo data ..."
       loop do
@@ -66,6 +72,35 @@ module FakeDynamo
       end
     rescue EOFError
       file.close
+      compact_if_necessary
+      @loaded = true
+    end
+
+    def compact_threshold
+      100 * 1024 * 1024 # 100mb
+    end
+
+    def compact_if_necessary
+      return unless File.exists? db_path
+      if File.stat(db_path).size > compact_threshold
+        compact!
+      end
+    end
+
+    def compact!
+      return if @compacted
+      @aof = Tempfile.new('compact')
+      puts "Compacting db ..."
+      db.tables.each do |_, table|
+        persist('CreateTable', table.create_table_data)
+        table.items.each do |_, item|
+          persist('PutItem', table.put_item_data(item))
+        end
+      end
+      @aof.close
+      FileUtils.mv(@aof.path, db_path)
+      @aof = nil
+      @compacted = true
     end
   end
 end

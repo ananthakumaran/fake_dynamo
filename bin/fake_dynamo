@@ -4,14 +4,23 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'fake_dynamo'
 require 'optparse'
 
-options = {:port => 4567}
+options = {:port => 4567, :compact => false }
 OptionParser.new do |opts|
   opts.banner = "Usage: fake_dynamo [options]"
 
   opts.on("-p", "--port PORT") do |v|
     options[:port] = v
   end
+
+  opts.on("-c", "--compact") do |v|
+    options[:compact] = v
+  end
 end.parse!
+
+if options[:compact]
+  FakeDynamo::Storage.instance.load_aof
+  FakeDynamo::Storage.instance.compact!
+end
 
 FakeDynamo::Storage.instance.load_aof
 FakeDynamo::Server.run!(:port => options[:port])

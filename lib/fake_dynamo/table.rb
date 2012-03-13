@@ -27,6 +27,24 @@ module FakeDynamo
       }
     end
 
+    def create_table_data
+      {
+        'TableName' => name,
+        'KeySchema' => key_schema.description,
+        'ProvisionedThroughput' => {
+          'ReadCapacityUnits' => read_capacity_units,
+          'WriteCapacityUnits' => write_capacity_units
+        }
+      }
+    end
+
+    def put_item_data(item)
+      {
+        'TableName' => name,
+        'Item' => item.as_hash
+      }
+    end
+
     def size_description
       { 'ItemCount' => items.count,
         'TableSizeBytes' => size_bytes }

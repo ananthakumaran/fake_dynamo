@@ -3,7 +3,7 @@ module FakeDynamo
 
     include Validation
 
-    attr_reader :tables
+    attr_accessor :tables
 
     class << self
       def instance
