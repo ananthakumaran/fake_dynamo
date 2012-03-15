@@ -1,6 +1,6 @@
 # FakeDynamo
 
-local hosted, inmemory fake dynamodb
+local hosted, inmemory dynamodb emulator.
 
 
 # Caveats
@@ -27,4 +27,4 @@ AWS.config(:use_ssl => false,
 ````
 
 # Storage
-fake_dynamo stores the `write commands` in `/usr/local/var/fake_dynamo/db.fdb` and replays it before starting.
+fake_dynamo stores the `write operations` (request that changes the data) in `/usr/local/var/fake_dynamo/db.fdb` and replays it before starting the server.
