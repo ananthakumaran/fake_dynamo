@@ -24,7 +24,6 @@ module FakeDynamo
     it 'tests le' do
       subject.le_filter([{'S' => 'c'}], s_attr, false).should be_true
       subject.le_filter([{'S' => 'bcd'}], s_attr, false).should be_true
-      subject.le_filter([{'N' => 'bcd'}], s_attr, false).should be_false
       subject.le_filter([{'S' => 'a'}], s_attr, false).should be_false
       subject.le_filter([{'N' => '10'}], n_attr, false).should be_true
       subject.le_filter([{'N' => '11'}], n_attr, false).should be_true
@@ -34,7 +33,6 @@ module FakeDynamo
     it 'tests lt' do
       subject.lt_filter([{'S' => 'c'}], s_attr, false).should be_true
       subject.lt_filter([{'S' => 'bcd'}], s_attr, false).should be_false
-      subject.lt_filter([{'N' => 'bcd'}], s_attr, false).should be_false
       subject.lt_filter([{'S' => 'a'}], s_attr, false).should be_false
       subject.lt_filter([{'N' => '10'}], n_attr, false).should be_false
       subject.lt_filter([{'N' => '11'}], n_attr, false).should be_true
@@ -44,7 +42,6 @@ module FakeDynamo
     it 'test ge' do
       subject.ge_filter([{'S' => 'c'}], s_attr, false).should be_false
       subject.ge_filter([{'S' => 'bcd'}], s_attr, false).should be_true
-      subject.ge_filter([{'N' => 'bcd'}], s_attr, false).should be_false
       subject.ge_filter([{'S' => 'a'}], s_attr, false).should be_true
       subject.ge_filter([{'N' => '10'}], n_attr, false).should be_true
       subject.ge_filter([{'N' => '11'}], n_attr, false).should be_false
@@ -54,7 +51,6 @@ module FakeDynamo
     it 'test gt' do
       subject.gt_filter([{'S' => 'c'}], s_attr, false).should be_false
       subject.gt_filter([{'S' => 'bcd'}], s_attr, false).should be_false
-      subject.gt_filter([{'N' => 'bcd'}], s_attr, false).should be_false
       subject.gt_filter([{'S' => 'a'}], s_attr, false).should be_true
       subject.gt_filter([{'N' => '10'}], n_attr, false).should be_false
       subject.gt_filter([{'N' => '11'}], n_attr, false).should be_false

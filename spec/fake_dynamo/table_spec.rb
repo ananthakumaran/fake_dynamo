@@ -71,6 +71,26 @@ module FakeDynamo
         end.to raise_error(ValidationException, /duplicate/)
       end
 
+      it 'should fail if value is of different type' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => "3" },
+                               'AttributeName3' => { 'NS' => ["1", "3", "one"] }
+                             }})
+        end.to raise_error(ValidationException, /numeric/)
+
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => "3" },
+                               'AttributeName3' => { 'N' => "one" }
+                             }})
+        end.to raise_error(ValidationException, /numeric/)
+      end
+
       it 'should fail if range key is not present' do
         expect do
           subject.put_item({ 'TableName' => 'Table1',
@@ -224,6 +244,22 @@ module FakeDynamo
 
       let(:delete) do
         {'AttributeUpdates' => {'AttributeName3' => {'Action' => 'DELETE'}}}
+      end
+
+      it "should not partially update item" do
+        expect do
+          put['AttributeUpdates'].merge!({ 'xx' => { 'Value' => { 'N' => 'one'}, 'Action' => 'ADD'}})
+          subject.update_item(key.merge(put))
+        end.to raise_error(ValidationException, /numeric/)
+        subject.get_item(key).should include('Item' => item['Item'])
+
+        expect do
+          key['Key']['HashKeyElement']['S'] = 'unknown'
+          put['AttributeUpdates'].merge!({ 'xx' => { 'Value' => { 'N' => 'one'}, 'Action' => 'ADD'}})
+          subject.update_item(key.merge(put))
+        end.to raise_error(ValidationException, /numeric/)
+
+        subject.get_item(key).should eq(consumed_capacity)
       end
 
       it "should check conditions" do

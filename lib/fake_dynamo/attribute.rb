@@ -8,6 +8,16 @@ module FakeDynamo
       if ['NS', 'SS'].include? @type
         raise ValidationException, 'Input collection contains duplicates' if value.uniq!
       end
+
+      if ['NS', 'N'].include? @type
+        Array(@value).each do |n|
+          begin
+            Integer(n)
+          rescue
+            raise ValidationException, "The parameter cannot be converted to a numeric value: #{n}"
+          end
+        end
+      end
     end
 
     def description

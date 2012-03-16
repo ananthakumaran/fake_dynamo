@@ -148,14 +148,29 @@ module FakeDynamo
         else
           return consumed_capacity
         end
+        item_created = true
       end
 
-      old_hash = item.as_hash
-      data['AttributeUpdates'].each do |name, update_data|
-        item.update(name, update_data)
+      old_item = deep_copy(item)
+      begin
+        old_hash = item.as_hash
+        data['AttributeUpdates'].each do |name, update_data|
+          item.update(name, update_data)
+        end
+      rescue => e
+        if item_created
+          @items.delete(key)
+        else
+          @items[key] = old_item
+        end
+        raise e
       end
 
       consumed_capacity.merge(return_values(data, old_hash, item))
+    end
+
+    def deep_copy(x)
+      Marshal.load(Marshal.dump(x))
     end
 
     def query(data)
