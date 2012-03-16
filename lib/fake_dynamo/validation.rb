@@ -52,9 +52,9 @@ module FakeDynamo
         when :string
           add_errors("The parameter '#{param(attribute, parents)}' must be a string") unless data.kind_of? String
         when :long
-          add_errors("The parameter '#{param(attribute, parents)}' must be a long") unless data.kind_of? Fixnum
+          add_errors("The parameter '#{param(attribute, parents)}' must be a long") unless data.kind_of? Integer
         when :integer
-          add_errors("The parameter '#{param(attribute, parents)}' must be a integer") unless data.kind_of? Fixnum
+          add_errors("The parameter '#{param(attribute, parents)}' must be a integer") unless data.kind_of? Integer
         when :boolean
           add_errors("The parameter '#{param(attribute, parents)}' must be a boolean") unless (data.kind_of? TrueClass or data.kind_of? FalseClass)
         when Hash

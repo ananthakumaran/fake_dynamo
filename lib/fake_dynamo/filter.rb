@@ -37,7 +37,7 @@ module FakeDynamo
 
     def validate_size(value_list, size)
       if (size.kind_of? Range and (not (size.include? value_list.size))) or
-          (size.kind_of? Fixnum and value_list.size != size)
+          (size.kind_of? Integer and value_list.size != size)
         raise ValidationException, "The attempted filter operation is not supported for the provided filter argument count"
       end
     end

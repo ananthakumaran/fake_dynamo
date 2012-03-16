@@ -46,7 +46,7 @@ module FakeDynamo
 
       its(:read_capacity_units) { should == 10 }
       its(:write_capacity_units) { should == 15 }
-      its(:last_increased_time) { should be_a_kind_of(Fixnum) }
+      its(:last_increased_time) { should be_a_kind_of(Integer) }
       its(:last_decreased_time) { should be_nil }
     end
 
