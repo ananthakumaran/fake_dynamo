@@ -22,7 +22,7 @@ module FakeDynamo
     end
 
     def db_path
-      '/usr/local/var/fake_dynamo/test_db.fdb'
+      '/tmp/test_db.fdb'
     end
   end
 end
