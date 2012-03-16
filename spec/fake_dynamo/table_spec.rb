@@ -60,6 +60,17 @@ module FakeDynamo
         end.to raise_error(ValidationException, /missing.*item/i)
       end
 
+      it 'should fail if sets contains duplicates' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => "3" },
+                               'AttributeName3' => { 'NS' => ["1", "3", "3"] }
+                             }})
+        end.to raise_error(ValidationException, /duplicate/)
+      end
+
       it 'should fail if range key is not present' do
         expect do
           subject.put_item({ 'TableName' => 'Table1',

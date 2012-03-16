@@ -93,6 +93,7 @@ module FakeDynamo
           old_attribute.value = (old_attribute.value.to_i + attribute.value.to_i).to_s
         else
           old_attribute.value += attribute.value
+          old_attribute.value.uniq!
         end
       else
         attributes[name] = attribute

@@ -82,6 +82,12 @@ module FakeDynamo
         subject.attributes['set'].value.should eq(['1', '2', '3'])
       end
 
+      it "should handle duplicate in sets" do
+        subject.attributes['set'] = Attribute.new('set', ['1', '2'], 'SS')
+        subject.add('set', { 'SS' => ['3', '2']})
+        subject.attributes['set'].value.should eq(['1', '2', '3'])
+      end
+
       it "should handle type mismatch" do
         subject.attributes['xxx'] = Attribute.new('xxx', ['1', '2'], 'NS')
         expect { subject.add('xxx', {'SS' => ['3']}) }.to raise_error(ValidationException, /type mismatch/i)

@@ -4,6 +4,10 @@ module FakeDynamo
 
     def initialize(name, value, type)
       @name, @value, @type = name, value, type
+
+      if ['NS', 'SS'].include? @type
+        raise ValidationException, 'Input collection contains duplicates' if value.uniq!
+      end
     end
 
     def description
