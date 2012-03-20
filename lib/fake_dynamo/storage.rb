@@ -56,8 +56,9 @@ module FakeDynamo
       return unless write_command?(operation)
       db_aof.puts(operation)
       data = data.to_json
-      db_aof.puts(data.size + 1)
+      db_aof.puts(data.bytesize + "\n".bytesize)
       db_aof.puts(data)
+      db_aof.flush
     end
 
     def load_aof

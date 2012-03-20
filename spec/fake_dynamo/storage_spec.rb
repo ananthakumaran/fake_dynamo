@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'spec_helper'
 
 module FakeDynamo
@@ -13,7 +14,8 @@ module FakeDynamo
 
     def item(i)
       {'TableName' => 'User',
-        'Item' => { 'id' => { 'S' => (i % 100).to_s }}
+        'Item' => { 'id' => { 'S' => (i % 100).to_s },
+          'name' => { 'S' => "╩tr¥in" }}
       }
     end
 
