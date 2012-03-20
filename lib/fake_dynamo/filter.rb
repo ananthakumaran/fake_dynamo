@@ -23,7 +23,7 @@ module FakeDynamo
       end
 
       if target_attribute.type == 'N'
-        comparator.call(target_attribute.value.to_i, *value_attribute_list.map(&:value).map(&:to_i))
+        comparator.call(target_attribute.value.to_f, *value_attribute_list.map(&:value).map(&:to_f))
       else
         comparator.call(target_attribute.value, *value_attribute_list.map(&:value))
       end

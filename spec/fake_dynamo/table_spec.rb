@@ -91,6 +91,24 @@ module FakeDynamo
         end.to raise_error(ValidationException, /numeric/)
       end
 
+      it 'should handle float values' do
+        subject.put_item({ 'TableName' => 'Table1',
+                           'Item' => {
+                             'AttributeName1' => { 'S' => "test" },
+                             'AttributeName2' => { 'N' => "3" },
+                             'AttributeName3' => { 'N' => "4.44444" }
+                           }})
+        response = subject.get_item({'TableName' => 'Table1',
+                                      'Key' => {
+                                        'HashKeyElement' => { 'S' => 'test' },
+                                        'RangeKeyElement' => { 'N' => '3' }
+                                      }})
+
+        response['Item']['AttributeName3'].should eq('N' => '4.44444')
+
+
+      end
+
       it 'should fail if range key is not present' do
         expect do
           subject.put_item({ 'TableName' => 'Table1',

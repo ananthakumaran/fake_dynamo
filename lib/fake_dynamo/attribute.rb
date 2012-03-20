@@ -11,12 +11,16 @@ module FakeDynamo
 
       if ['NS', 'N'].include? @type
         Array(@value).each do |n|
-          begin
-            Integer(n)
-          rescue
-            raise ValidationException, "The parameter cannot be converted to a numeric value: #{n}"
-          end
+          numeric(n)
         end
+      end
+    end
+
+    def numeric(n)
+      begin
+        Float(n)
+      rescue
+        raise ValidationException, "The parameter cannot be converted to a numeric value: #{n}"
       end
     end
 
@@ -39,7 +43,7 @@ module FakeDynamo
 
     def <=>(other)
       if @type == 'N'
-        @value.to_i <=> other.value.to_i
+        @value.to_f <=> other.value.to_f
       else
         @value <=> other.value
       end
