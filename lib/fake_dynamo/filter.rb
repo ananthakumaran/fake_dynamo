@@ -3,6 +3,7 @@ module FakeDynamo
     include Validation
 
     def comparison_filter(value_list, size, target_attribute, fail_on_type_mismatch, supported_types, comparator)
+      return false if target_attribute.nil?
 
       validate_size(value_list, size)
 
@@ -66,6 +67,8 @@ module FakeDynamo
     end
 
     def contains_filter(value_list, target_attribute, fail_on_type_mismatch)
+      return false if target_attribute.nil?
+
       validate_size(value_list, 1)
       value_attribute = Attribute.from_hash(target_attribute.name, value_list.first)
       validate_supported_types(value_attribute, ['N', 'S'])
@@ -78,6 +81,8 @@ module FakeDynamo
     end
 
     def not_contains_filter(value_list, target_attribute, fail_on_type_mismatch)
+      return false if target_attribute.nil?
+
       validate_size(value_list, 1)
       value_attribute = Attribute.from_hash(target_attribute.name, value_list.first)
       validate_supported_types(value_attribute, ['N', 'S'])
@@ -92,6 +97,8 @@ module FakeDynamo
     INF = 1.0/0.0
 
     def in_filter(value_list, target_attribute, fail_on_type_mismatch)
+      return false if target_attribute.nil?
+
       validate_size(value_list, (1..INF))
 
       value_attribute_list = value_list.map do |value|
