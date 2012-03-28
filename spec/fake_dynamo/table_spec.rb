@@ -128,6 +128,37 @@ module FakeDynamo
         end.to raise_error(ValidationException, /mismatch/i)
       end
 
+      it 'should fail if the attribute value contains empty string' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => '11' },
+                               'x' => { 'S' => '' }
+                             }})
+        end.to raise_error(ValidationException, /empty/i)
+
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => '11' },
+                               'x' => { 'SS' => ['x', ''] }
+                             }})
+        end.to raise_error(ValidationException, /empty/i)
+      end
+
+      it 'should fail on empty key value' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => '11' },
+                               '' => { 'SS' => ['x'] }
+                             }})
+        end.to raise_error(ValidationException, /empty/i)
+      end
+
       it 'should putitem in the table' do
         subject.put_item(item)
         subject.items.size.should == 1

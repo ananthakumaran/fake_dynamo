@@ -14,6 +14,16 @@ module FakeDynamo
           numeric(n)
         end
       end
+
+      if ['S', 'SS'].include? @type
+        Array(value).each do |v|
+          raise ValidationException, 'An AttributeValue may not contain an empty string' if v == ''
+        end
+      end
+
+      if name == ''
+        raise ValidationException, 'Empty attribute name'
+      end
     end
 
     def numeric(n)
