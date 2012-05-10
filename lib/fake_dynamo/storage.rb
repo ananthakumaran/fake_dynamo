@@ -17,7 +17,7 @@ module FakeDynamo
     end
 
     def write_commands
-      %w[CreateTable DeleteItem DeleteTable PutItem UpdateItem UpdateTable]
+      %w[CreateTable DeleteItem DeleteTable PutItem UpdateItem UpdateTable BatchWriteItem]
     end
 
     def write_command?(command)

@@ -557,6 +557,7 @@
                       - :string
               ComparisonOperator:
               - :string
+              - :required
               - :enum: [EQ, NE, LE, LT, GE, GT, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH, IN, BETWEEN]
       ExclusiveStartKey:
       - :structure:
@@ -661,6 +662,7 @@
                   - :string
           ComparisonOperator:
           - :string
+          - :required
           - :enum: [EQ, LE, LT, GE, GT, BEGINS_WITH, BETWEEN]
       ScanIndexForward:
       - :boolean
@@ -720,6 +722,108 @@
           - :list: member
     - ConsumedCapacityUnits:
       - :float
+  BatchWriteItem:
+    :input:
+      RequestItems:
+      - :map:
+          :key:
+          - :string
+          :value:
+          - :list:
+            - :structure:
+                PutRequest:
+                - :structure:
+                    Item:
+                    - :map:
+                        :key:
+                        - :string
+                        :value:
+                        - :structure:
+                            S:
+                            - :string
+                            N:
+                            - :string
+                            SS:
+                            - :list:
+                              - :string
+                            NS:
+                            - :list:
+                              - :string
+                    - :required
+                DeleteRequest:
+                - :structure:
+                    Key:
+                    - :structure:
+                        HashKeyElement:
+                        - :structure:
+                            S:
+                            - :string
+                            N:
+                            - :string
+                            SS:
+                            - :list:
+                              - :string
+                            NS:
+                            - :list:
+                              - :string
+                        - :required
+                        RangeKeyElement:
+                        - :structure:
+                            S:
+                            - :string
+                            N:
+                            - :string
+                            SS:
+                            - :list:
+                              - :string
+                            NS:
+                            - :list:
+                              - :string
+                    - :required
+      - :required
+    :output:
+    - Responses:
+      - :map:
+        - entry
+        - key
+        - value
+      - entry:
+        - value:
+          - ConsumedCapacityUnits:
+            - :float
+    - UnprocessedItems:
+      - :map:
+        - entry
+        - key
+        - value
+      - entry:
+        - value:
+          - :list: member
+          - member:
+            - PutRequest:
+              - Item:
+                - :map:
+                  - entry
+                  - key
+                  - value
+                - entry:
+                  - value:
+                    - SS:
+                      - :list: member
+                    - NS:
+                      - :list: member
+            - DeleteRequest:
+              - Key:
+                - HashKeyElement:
+                  - SS:
+                    - :list: member
+                  - NS:
+                    - :list: member
+                - RangeKeyElement:
+                  - SS:
+                    - :list: member
+                  - NS:
+                    - :list: member
 :client_errors:
   ConditionalCheckFailed: []
 

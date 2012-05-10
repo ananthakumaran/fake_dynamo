@@ -253,5 +253,120 @@ module FakeDynamo
         }.to raise_error(FakeDynamo::ResourceNotFoundException)
       end
     end
+
+    context 'BatchWriteItem' do
+      subject do
+        db = DB.new
+        db.create_table(user_table)
+        db
+      end
+
+      it 'should validate payload' do
+        expect {
+          subject.process('BatchWriteItem', {})
+        }.to raise_error(FakeDynamo::ValidationException)
+      end
+
+      it 'should fail if table not found' do
+        expect {
+          subject.process('BatchWriteItem', {
+                            'RequestItems' => {
+                              'xxx' => ['DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => 'ananth' }}}]
+                            }
+                          })
+        }.to raise_error(FakeDynamo::ResourceNotFoundException, /table.*not.*found/i)
+      end
+
+      it 'should fail on conflict items' do
+        expect {
+        subject.process('BatchWriteItem', {
+                          'RequestItems' => {
+                            'User' => [{ 'DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => 'ananth' }}}},
+                                       { 'DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => 'ananth' }}}}]
+                          }
+                        })
+        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+
+        expect {
+          subject.process('BatchWriteItem', {
+                            'RequestItems' => {
+                              'User' => [{ 'DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => 'ananth' }}}},
+                                         {'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
+                            }
+                          })
+        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+
+        expect {
+          subject.process('BatchWriteItem', {
+                            'RequestItems' => {
+                              'User' => [{'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}},
+                                         {'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
+                            }
+                          })
+        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+      end
+
+      it 'writes/deletes item in the db' do
+        response = subject.process('BatchWriteItem', {
+                                     'RequestItems' => {
+                                       'User' => [{'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
+                                     }
+                                   })
+
+        response['Responses'].should eq('User' => { 'ConsumedCapacityUnits' => 1 })
+
+        response = subject.get_item({'TableName' => 'User',
+                                      'Key' => {'HashKeyElement' => { 'S' => 'ananth'}}})
+
+        response['Item']['id'].should eq('S' => 'ananth')
+
+        subject.process('BatchWriteItem', {
+                          'RequestItems' => {
+                            'User' => [{ 'DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => 'ananth' }}}}]
+                          }
+                        })
+
+        response = subject.get_item({'TableName' => 'User',
+                                      'Key' => {'HashKeyElement' => { 'S' => 'ananth'}}})
+
+        response.should eq({"ConsumedCapacityUnits"=>1})
+      end
+
+      it 'fails it the requested operation is more than 25' do
+        expect {
+          requests = (1..26).map { |i| { 'DeleteRequest' => { 'Key' => { 'HashKeyElement' => { 'S' => "ananth#{i}" }}}} }
+
+          subject.process('BatchWriteItem', {
+                            'RequestItems' => {
+                              'User' => requests
+                            }
+                          })
+
+        }.to raise_error(FakeDynamo::ValidationException, /too many items/i)
+      end
+
+      it 'should fail on request size greater than 1 mb' do
+        expect {
+
+          keys = { 'SS' => (1..2000).map { |i| 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' + i.to_s } }
+
+          requests = (1..25).map do |i|
+            {'PutRequest' =>
+              {'Item' =>
+                { 'id' => { 'S' => 'ananth' + i.to_s },
+                  'keys' => keys
+                }}}
+          end
+
+
+          subject.process('BatchWriteItem', {
+                            'RequestItems' => {
+                              'User' => requests
+                            }
+                          })
+
+        }.to raise_error(FakeDynamo::ValidationException, /size.*exceed/i)
+      end
+    end
   end
 end

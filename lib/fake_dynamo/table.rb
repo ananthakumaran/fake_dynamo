@@ -101,6 +101,14 @@ module FakeDynamo
       consumed_capacity.merge(return_values(data, old_item))
     end
 
+    def batch_put_request(data)
+      Item.from_data(data['Item'], key_schema)
+    end
+
+    def batch_put(item)
+      @items[item.key] = item
+    end
+
     def get_item(data)
       response = consumed_capacity
       if item_hash = get_raw_item(data['Key'], data['AttributesToGet'])
@@ -135,6 +143,14 @@ module FakeDynamo
 
       @items.delete(key) if item
       consumed_capacity.merge(return_values(data, item))
+    end
+
+    def batch_delete_request(data)
+      Key.from_data(data['Key'], key_schema)
+    end
+
+    def batch_delete(key)
+      @items.delete(key)
     end
 
     def update_item(data)

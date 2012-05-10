@@ -20,6 +20,7 @@ module FakeDynamo
 
     def validate_payload(operation, data)
       validate! do
+        validate_request_size(data)
         validate_operation(operation)
         validate_input(operation, data)
       end
@@ -148,6 +149,12 @@ module FakeDynamo
         validate_type(range_key, key_schema.range_key)
       elsif data['RangeKeyElement']
         raise ValidationException, "RangeKeyElement is not present in the schema"
+      end
+    end
+
+    def validate_request_size(data)
+      if data.to_s.bytesize > 1 * 1024 * 1024
+        raise ValidationException, "Request size can't exceed 1 mb"
       end
     end
 

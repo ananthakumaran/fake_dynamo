@@ -104,9 +104,67 @@ module FakeDynamo
       { 'Responses' => response, 'UnprocessedKeys' => {}}
     end
 
+    def batch_write_item(data)
+      response = {}
+      items = {}
+      request_count = 0
+
+      # validation
+      data['RequestItems'].each do |table_name, requests|
+        table = find_table(table_name)
+
+        items[table.name] ||= {}
+
+        requests.each do |request|
+          if request['PutRequest']
+            item = table.batch_put_request(request['PutRequest'])
+            check_item_conflict(items, table.name, item.key)
+            items[table.name][item.key] = item
+          else
+            key = table.batch_delete_request(request['DeleteRequest'])
+            check_item_conflict(items, table.name, key)
+            items[table.name][key] = :delete
+          end
+
+          request_count += 1
+        end
+      end
+
+      check_max_request(request_count)
+
+      # real modification
+      items.each do |table_name, requests|
+        table = find_table(table_name)
+        requests.each do |key, value|
+          if value == :delete
+            table.batch_delete(key)
+          else
+            table.batch_put(value)
+          end
+        end
+        response[table_name] = { 'ConsumedCapacityUnits' => 1 }
+      end
+
+      { 'Responses' => response, 'UnprocessedItems' => {} }
+    end
+
     private
+
+    def check_item_conflict(items, table_name, key)
+      if items[table_name][key]
+        raise ValidationException, 'Provided list of item keys contains duplicates'
+      end
+    end
+
+
     def find_table(table_name)
       tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"
+    end
+
+    def check_max_request(count)
+      if count > 25
+        raise ValidationException, 'Too many items requested for the BatchWriteItem call'
+      end
     end
 
   end
