@@ -4,6 +4,8 @@ module FakeDynamo
   class Server < Sinatra::Base
 
     set :show_exceptions, false
+    set :environment, :production
+    set :lock, true
 
     post '/' do
       status = 200
