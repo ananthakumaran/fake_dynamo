@@ -32,6 +32,9 @@ AWS.config(:use_ssl => false,
            :secret_access_key => "xxx")
 ````
 
+__please open a pull request with your configuration if you are using
+fake_dynamo with clients other than the ones mentioned above__.
+
 # Storage
 fake_dynamo stores the `write operations` (request that changes the
 data) in `/usr/local/var/fake_dynamo/db.fdb` and replays it before
