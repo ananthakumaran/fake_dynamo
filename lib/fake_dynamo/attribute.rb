@@ -58,6 +58,22 @@ module FakeDynamo
         @value <=> other.value
       end
     end
+    
+    def <=(other)
+      if @type == 'N'
+        @value.to_f <= other.value.to_f
+      else
+        @value <= other.value
+      end
+    end    
+    
+    def >=(other)
+      if @type == 'N'
+        @value.to_f >= other.value.to_f
+      else
+        @value >= other.value
+      end
+    end    
 
     def eql?(attribute)
       return false unless attribute.kind_of? Attribute

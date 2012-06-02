@@ -209,7 +209,7 @@ module FakeDynamo
         matched_items.sort! { |a, b| b.key.range <=> a.key.range }
       end
 
-      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'])
+      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward)
 
       if data['RangeKeyCondition']
         conditions = {key_schema.range_key.name => data['RangeKeyCondition']}
@@ -237,7 +237,7 @@ module FakeDynamo
       count_and_attributes_to_get_present?(data)
       validate_limit(data)
       conditions = data['ScanFilter'] || {}
-      all_items = drop_till_start(items.values, data['ExclusiveStartKey'])
+      all_items = drop_till_start(items.values, data['ExclusiveStartKey'], true)
       result, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)
       response = {
         'Count' => result.size,
@@ -267,9 +267,16 @@ module FakeDynamo
       end
     end
 
-    def drop_till_start(all_items, start_key_hash)
+    def drop_till_start(all_items, start_key_hash, forward)
       if start_key_hash
-        all_items.drop_while { |i| i.key.as_key_hash != start_key_hash }.drop(1)
+        start_key = Key.from_data(start_key_hash, key_schema)
+        all_items.drop_while { |i| 
+          if forward
+            i.key.range <= start_key.range 
+          else
+            i.key.range >= start_key.range
+          end
+        }
       else
         all_items
       end

@@ -442,6 +442,9 @@ module FakeDynamo
       it 'should handle exclusive start key' do
         result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"7"}}}))
         result['Count'].should eq(4)
+        result['Items'].first['AttributeName2'].should eq({'N' => '9'})        
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"8"}}}))
+        result['Count'].should eq(4)
         result['Items'].first['AttributeName2'].should eq({'N' => '9'})
         result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"88"}}}))
         result['Count'].should eq(0)
