@@ -373,7 +373,8 @@ module FakeDynamo
         t = Table.new(data)
         t.put_item(item)
         (1..3).each do |i|
-          (1..10).each do |j|
+          (15.downto(1)).each do |j|
+            next if j.even?
             item['Item']['AttributeName1']['S'] = "att#{i}"
             item['Item']['AttributeName2']['N'] = j.to_s
             t.put_item(item)
@@ -422,14 +423,32 @@ module FakeDynamo
 
       it 'should handle scanindexforward' do
         result = subject.query(query)
-        result['Items'].first['AttributeName2'].should eq({'N' => '2'})
+        result['Items'].first['AttributeName2'].should eq({'N' => '3'})
         result = subject.query(query.merge({'ScanIndexForward' => false}))
-        result['Items'].first['AttributeName2'].should eq({'N' => '10'})
+        result['Items'].first['AttributeName2'].should eq({'N' => '15'})
+
+        query['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att1' }, 'RangeKeyElement' => { "N" => '7' }}
+        result = subject.query(query)
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+
+        result = subject.query(query.merge({'ScanIndexForward' => false}))
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '5'})
+
+        query['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att1' }, 'RangeKeyElement' => { "N" => '8' }}
+        result = subject.query(query)
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+
+        result = subject.query(query.merge({'ScanIndexForward' => false}))
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '7'})
       end
 
       it 'should return lastevaluated key' do
         result = subject.query(query)
-        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}
+        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"11"}}
         result = subject.query(query.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -439,13 +458,17 @@ module FakeDynamo
       end
 
       it 'should handle exclusive start key' do
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"6"}}}))
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"7"}}}))
         result['Count'].should eq(4)
-        result['Items'].first['AttributeName2'].should eq({'N' => '7'})
+        result['Items'].first['AttributeName2'].should eq({'N' => '9'})
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"8"}}}))
+        result['Count'].should eq(4)
+        result['Items'].first['AttributeName2'].should eq({'N' => '9'})
         result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"88"}}}))
         result['Count'].should eq(0)
         result['Items'].should be_empty
       end
+
 
       it 'should return all elements if not rangekeycondition is given' do
         query.delete('RangeKeyCondition')
@@ -455,7 +478,7 @@ module FakeDynamo
 
       it 'should handle between operator' do
         query['RangeKeyCondition'] = {
-          'AttributeValueList' => [{'N' => '1'}, {'N' => '4'}],
+          'AttributeValueList' => [{'N' => '1'}, {'N' => '7'}],
             'ComparisonOperator' => 'BETWEEN'
         }
         result = subject.query(query)
@@ -466,7 +489,7 @@ module FakeDynamo
         query['AttributesToGet'] = ['AttributeName1', "AttributeName2"]
         result = subject.query(query)
         result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'},
-                                        'AttributeName2' => { 'N' => '2' })
+                                        'AttributeName2' => { 'N' => '3' })
       end
     end
 
@@ -474,7 +497,8 @@ module FakeDynamo
       subject do
         t = Table.new(data)
         (1..3).each do |i|
-          (1..10).each do |j|
+          (15.downto(1)).each do |j|
+            next if j.even?
             item['Item']['AttributeName1']['S'] = "att#{i}"
             item['Item']['AttributeName2']['N'] = j.to_s
             t.put_item(item)
@@ -509,7 +533,7 @@ module FakeDynamo
 
       it 'should handle basic scan' do
         result = subject.scan(scan)
-        result['Count'].should eq(30)
+        result['Count'].should eq(24)
 
         scan['ScanFilter']['AttributeName2']['ComparisonOperator'] = 'EQ'
         subject.scan(scan)['Count'].should eq(3)
@@ -518,7 +542,7 @@ module FakeDynamo
       it 'should return lastevaluated key' do
         scan['Limit'] = 5
         result = subject.scan(scan)
-        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"5"}}
+        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"9"}}
         result = subject.scan(scan.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -526,6 +550,18 @@ module FakeDynamo
         result = subject.scan(scan)
         result['LastEvaluatedKey'].should be_nil
       end
+
+      it 'should handle ordering' do
+        scan['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att2' }, 'RangeKeyElement' => { "N" => '7' }}
+        result = subject.scan(scan)
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+
+        scan['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att2' }, 'RangeKeyElement' => { "N" => '8' }}
+        result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
+        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+      end
+
     end
   end
 end

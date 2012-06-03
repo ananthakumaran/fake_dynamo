@@ -1,5 +1,6 @@
 module FakeDynamo
   class Key
+    include Comparable
     extend Validation
 
     attr_accessor :primary, :range
@@ -65,6 +66,10 @@ module FakeDynamo
         result.merge!({'RangeKeyElement' => { @range.type => @range.value }})
       end
       result
+    end
+
+    def <=>(other)
+      [primary, range] <=> [other.primary, other.range]
     end
 
   end
