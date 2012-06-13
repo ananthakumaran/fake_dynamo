@@ -12,7 +12,7 @@ local hosted, inmemory dynamodb emulator.
 
 # Usage
 
-requires ruby >= 1.9
+__requires ruby >= 1.9__
 
 ````
 gem install fake_dynamo

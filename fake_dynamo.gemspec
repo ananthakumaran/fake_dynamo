@@ -13,6 +13,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = FakeDynamo::VERSION
 
+  gem.required_ruby_version = '>= 1.9.0'
   gem.add_dependency 'sinatra'
   gem.add_dependency 'activesupport'
   gem.add_dependency 'json'
