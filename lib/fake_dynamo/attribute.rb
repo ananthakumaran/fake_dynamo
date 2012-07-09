@@ -6,6 +6,7 @@ module FakeDynamo
       @name, @value, @type = name, value, type
 
       if ['NS', 'SS'].include? @type
+        raise ValidationException, 'An AttributeValue may not contain an empty set' if value.empty?
         raise ValidationException, 'Input collection contains duplicates' if value.uniq!
       end
 

@@ -159,6 +159,17 @@ module FakeDynamo
         end.to raise_error(ValidationException, /empty/i)
       end
 
+      it 'should fail on empty set' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+                             'Item' => {
+                               'AttributeName1' => { 'S' => "test" },
+                               'AttributeName2' => { 'N' => '11' },
+                               'x' => { 'SS' => [] }
+                             }})
+        end.to raise_error(ValidationException, /empty/i)
+      end
+
       it 'should putitem in the table' do
         subject.put_item(item)
         subject.items.size.should == 1
