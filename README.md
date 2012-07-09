@@ -1,4 +1,4 @@
-# FakeDynamo
+# FakeDynamo ![Build Status](https://secure.travis-ci.org/ananthakumaran/fake_dynamo.png)
 
 local hosted, inmemory dynamodb emulator.
 
