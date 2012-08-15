@@ -7,6 +7,8 @@ module FakeDynamo
     attr_accessor :compacted, :loaded
 
     class << self
+      attr_accessor :db_path
+
       def instance
         @storage ||= Storage.new
       end
@@ -25,7 +27,7 @@ module FakeDynamo
     end
 
     def db_path
-      '/usr/local/var/fake_dynamo/db.fdb'
+      self.class.db_path
     end
 
     def init_db

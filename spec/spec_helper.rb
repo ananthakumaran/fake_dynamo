@@ -20,9 +20,7 @@ module FakeDynamo
       delete_db
       init_db
     end
-
-    def db_path
-      '/tmp/test_db.fdb'
-    end
   end
 end
+
+FakeDynamo::Storage.db_path = '/tmp/test_db.fdb'
