@@ -4,15 +4,6 @@ module FakeDynamo
   describe Server do
     include Rack::Test::Methods
 
-    def get_server(app)
-      s = app.instance_variable_get :@app
-      if s.instance_of? Server
-        s
-      else
-        get_server(s)
-      end
-    end
-
     let(:data) do
       {
         "TableName" => "Table1",
@@ -23,7 +14,7 @@ module FakeDynamo
       }
     end
     let(:app) { Server.new }
-    let(:server) { get_server(app) }
+    let(:server) { Server.new! }
 
     it "should extract_operation" do
       server.extract_operation('HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable').should eq('CreateTable')
