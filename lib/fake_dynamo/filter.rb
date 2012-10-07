@@ -49,14 +49,14 @@ module FakeDynamo
       end
     end
 
-    def_filter(:eq, 1, ['N', 'S'], &:==)
-    def_filter(:le, 1, ['N', 'S'], &:<=)
-    def_filter(:lt, 1, ['N', 'S'], &:<)
-    def_filter(:ge, 1, ['N', 'S'], &:>=)
-    def_filter(:gt, 1, ['N', 'S'], &:>)
-    def_filter(:begins_with, 1, ['S'], &:start_with?)
-    def_filter(:between, 2, ['N', 'S'], &:between?)
-    def_filter(:ne, 1, ['N', 'S'], &:!=)
+    def_filter(:eq, 1, ['N', 'S', 'B'], &:==)
+    def_filter(:le, 1, ['N', 'S', 'B'], &:<=)
+    def_filter(:lt, 1, ['N', 'S', 'B'], &:<)
+    def_filter(:ge, 1, ['N', 'S', 'B'], &:>=)
+    def_filter(:gt, 1, ['N', 'S', 'B'], &:>)
+    def_filter(:begins_with, 1, ['S', 'B'], &:start_with?)
+    def_filter(:between, 2, ['N', 'S', 'B'], &:between?)
+    def_filter(:ne, 1, ['N', 'S', 'B'], &:!=)
 
     def not_null_filter(value_list, target_attribute,  fail_on_type_mismatch)
       not target_attribute.nil?
@@ -66,16 +66,22 @@ module FakeDynamo
       target_attribute.nil?
     end
 
+    def comparable_types?(value_type, target_type)
+      ((value_type == 'S' and
+        (target_type == 'S' or target_type == 'SS')) or
+       (value_type == 'N' and target_type == 'NS')  or
+       (value_type == 'B' and
+        (target_type == 'B' or target_type == 'BS')))
+    end
+
     def contains_filter(value_list, target_attribute, fail_on_type_mismatch)
       return false if target_attribute.nil?
 
       validate_size(value_list, 1)
       value_attribute = Attribute.from_hash(target_attribute.name, value_list.first)
-      validate_supported_types(value_attribute, ['N', 'S'])
+      validate_supported_types(value_attribute, ['N', 'S', 'B'])
 
-      if ((value_attribute.type == 'S' and
-           (target_attribute.type == 'S' or target_attribute.type == 'SS')) or
-          (value_attribute.type == 'N' and target_attribute.type == 'NS'))
+      if comparable_types?(value_attribute.type, target_attribute.type)
         target_attribute.value.include?(value_attribute.value)
       end
     end
@@ -85,11 +91,9 @@ module FakeDynamo
 
       validate_size(value_list, 1)
       value_attribute = Attribute.from_hash(target_attribute.name, value_list.first)
-      validate_supported_types(value_attribute, ['N', 'S'])
+      validate_supported_types(value_attribute, ['N', 'S', 'B'])
 
-      if ((value_attribute.type == 'S' and
-           (target_attribute.type == 'S' or target_attribute.type == 'SS')) or
-          (value_attribute.type == 'N' and target_attribute.type == 'NS'))
+      if comparable_types?(value_attribute.type, target_attribute.type)
         !target_attribute.value.include?(value_attribute.value)
       end
     end
@@ -103,7 +107,7 @@ module FakeDynamo
 
       value_attribute_list = value_list.map do |value|
         value_attribute = Attribute.from_hash(target_attribute.name, value)
-        validate_supported_types(value_attribute, ['N', 'S'])
+        validate_supported_types(value_attribute, ['N', 'S', 'B'])
         value_attribute
       end
 

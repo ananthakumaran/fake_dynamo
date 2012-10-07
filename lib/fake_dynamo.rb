@@ -1,5 +1,6 @@
 require 'fake_dynamo/version'
 require 'json'
+require 'base64'
 require 'active_support/inflector'
 require 'active_support/core_ext/class/attribute'
 require 'fake_dynamo/exceptions'

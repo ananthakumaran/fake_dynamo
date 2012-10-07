@@ -18,7 +18,9 @@ module FakeDynamo
         'Item' => {
           'AttributeName1' => { 'S' => "test" },
           'AttributeName2' => { 'N' => '11' },
-          'AttributeName3' => { 'S' => "another" }
+          'AttributeName3' => { 'S' => "another" },
+          'binary' => { 'B' => Base64.encode64("binary") },
+          'binary_set' => { 'BS' => [Base64.encode64("binary")] }
         }}
     end
 

@@ -71,7 +71,7 @@ module FakeDynamo
         attributes.delete(name)
       elsif old_attribute = attributes[name]
         validate_type(value, old_attribute)
-        unless ["SS", "NS"].include? old_attribute.type
+        unless ["SS", "NS", "BS"].include? old_attribute.type
           raise ValidationException, "Action DELETE is not supported for type #{old_attribute.type}"
         end
         attribute = Attribute.from_hash(name, value)
@@ -82,7 +82,7 @@ module FakeDynamo
     def add(name, value)
       attribute = Attribute.from_hash(name, value)
 
-      unless ["N", "SS", "NS"].include? attribute.type
+      unless ["N", "SS", "NS", "BS"].include? attribute.type
         raise ValidationException, "Action ADD is not supported for type #{attribute.type}"
       end
 

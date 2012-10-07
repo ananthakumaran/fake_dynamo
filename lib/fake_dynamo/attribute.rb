@@ -5,7 +5,15 @@ module FakeDynamo
     def initialize(name, value, type)
       @name, @value, @type = name, value, type
 
-      if ['NS', 'SS'].include? @type
+      if @type == 'B'
+        @value = Base64.decode64(value)
+      end
+
+      if @type == 'BS'
+        @value = value.map { |v| Base64.decode64(v) }
+      end
+
+      if ['NS', 'SS', 'BS'].include? @type
         raise ValidationException, 'An AttributeValue may not contain an empty set' if value.empty?
         raise ValidationException, 'Input collection contains duplicates' if value.uniq!
       end
@@ -16,9 +24,9 @@ module FakeDynamo
         end
       end
 
-      if ['S', 'SS'].include? @type
+      if ['S', 'SS', 'S', 'BS'].include? @type
         Array(value).each do |v|
-          raise ValidationException, 'An AttributeValue may not contain an empty string' if v == ''
+          raise ValidationException, 'An AttributeValue may not contain an empty string or empty binary' if v == ''
         end
       end
 
@@ -43,7 +51,15 @@ module FakeDynamo
     end
 
     def as_hash
-      { @name => { @type => @value } }
+      value = if @type == 'B'
+                Base64.encode64(@value)
+              elsif @type == 'BS'
+                @value.map { |v| Base64.encode64(v) }
+              else
+                @value
+              end
+
+      { @name => { @type => value } }
     end
 
     def ==(attribute)

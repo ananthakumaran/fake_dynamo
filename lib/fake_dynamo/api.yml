@@ -28,12 +28,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
           - :required
           RangeKeyElement:
           - :structure:
@@ -41,12 +46,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
       - :required
       AttributesToGet:
       - :list:
@@ -84,12 +94,17 @@
                         - :string
                         N:
                         - :string
+                        B:
+                        - :blob
                         SS:
                         - :list:
                           - :string
                         NS:
                         - :list:
                           - :string
+                        BS:
+                        - :list:
+                          - :blob
                     - :required
                     RangeKeyElement:
                     - :structure:
@@ -97,12 +112,17 @@
                         - :string
                         N:
                         - :string
+                        B:
+                        - :blob
                         SS:
                         - :list:
                           - :string
                         NS:
                         - :list:
                           - :string
+                        BS:
+                        - :list:
+                          - :blob
               - :required
               AttributesToGet:
               - :list:
@@ -170,12 +190,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
       - :required
       Expected:
       - :map:
@@ -189,12 +214,17 @@
                   - :string
                   N:
                   - :string
+                  B:
+                  - :blob
                   SS:
                   - :list:
                     - :string
                   NS:
                   - :list:
                     - :string
+                  BS:
+                  - :list:
+                    - :blob
               Exists:
               - :boolean
       ReturnValues:
@@ -301,12 +331,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
           - :required
           RangeKeyElement:
           - :structure:
@@ -314,12 +349,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
       - :required
       AttributeUpdates:
       - :map:
@@ -549,12 +589,17 @@
                     - :string
                     N:
                     - :string
+                    B:
+                    - :blob
                     SS:
                     - :list:
                       - :string
                     NS:
                     - :list:
                       - :string
+                    BS:
+                    - :list:
+                      - :blob
               ComparisonOperator:
               - :string
               - :required
@@ -567,12 +612,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
           - :required
           RangeKeyElement:
           - :structure:
@@ -580,12 +630,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
     :output:
     - Items:
       - :list: member
@@ -638,12 +693,17 @@
           - :string
           N:
           - :string
+          B:
+          - :blob
           SS:
           - :list:
             - :string
           NS:
           - :list:
             - :string
+          BS:
+          - :list:
+            - :blob
       - :required
       RangeKeyCondition:
       - :structure:
@@ -654,12 +714,17 @@
                 - :string
                 N:
                 - :string
+                B:
+                - :blob
                 SS:
                 - :list:
                   - :string
                 NS:
                 - :list:
                   - :string
+                BS:
+                - :list:
+                  - :blob
           ComparisonOperator:
           - :string
           - :required
@@ -674,12 +739,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
           - :required
           RangeKeyElement:
           - :structure:
@@ -687,12 +757,17 @@
               - :string
               N:
               - :string
+              B:
+              - :blob
               SS:
               - :list:
                 - :string
               NS:
               - :list:
                 - :string
+              BS:
+              - :list:
+                - :blob
     :output:
     - Items:
       - :list: member
@@ -743,12 +818,17 @@
                             - :string
                             N:
                             - :string
+                            B:
+                            - :blob
                             SS:
                             - :list:
                               - :string
                             NS:
                             - :list:
                               - :string
+                            BS:
+                            - :list:
+                              - :blob
                     - :required
                 DeleteRequest:
                 - :structure:
@@ -760,12 +840,17 @@
                             - :string
                             N:
                             - :string
+                            B:
+                            - :blob
                             SS:
                             - :list:
                               - :string
                             NS:
                             - :list:
                               - :string
+                            BS:
+                            - :list:
+                              - :blob
                         - :required
                         RangeKeyElement:
                         - :structure:
@@ -773,12 +858,17 @@
                             - :string
                             N:
                             - :string
+                            B:
+                            - :blob
                             SS:
                             - :list:
                               - :string
                             NS:
                             - :list:
                               - :string
+                            BS:
+                            - :list:
+                              - :blob
                     - :required
       - :required
     :output:

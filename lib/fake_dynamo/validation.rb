@@ -52,6 +52,8 @@ module FakeDynamo
         case constrain
         when :string
           add_errors("The parameter '#{param(attribute, parents)}' must be a string") unless data.kind_of? String
+        when :blob
+          add_errors("The parameter '#{param(attribute, parents)}' must be a binary") unless data.kind_of? String
         when :long
           add_errors("The parameter '#{param(attribute, parents)}' must be a long") unless data.kind_of? Integer
         when :integer
