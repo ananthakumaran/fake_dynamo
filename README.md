@@ -25,9 +25,9 @@ fake_dynamo --port 4567
 * aws-sdk
 
 ````ruby
-# rvmsudo fake_dynamo --port 80
 AWS.config(:use_ssl => false,
            :dynamo_db_endpoint => 'localhost',
+           :dynamo_db_port => 4567,
            :access_key_id => "xxx",
            :secret_access_key => "xxx")
 ````
