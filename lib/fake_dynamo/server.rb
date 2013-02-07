@@ -26,6 +26,12 @@ module FakeDynamo
       [status, response.to_json]
     end
 
+    delete '/' do
+      db.reset
+      storage.reset
+      {success: true}.to_json
+    end
+
     def db
       DB.instance
     end

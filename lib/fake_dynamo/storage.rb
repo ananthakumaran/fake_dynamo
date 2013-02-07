@@ -41,6 +41,13 @@ module FakeDynamo
       FileUtils.rm(db_path)
     end
 
+    def reset
+      puts "resetting database ..."
+      @aof.close if @aof
+      @aof = nil
+      delete_db
+    end
+
     def db
       DB.instance
     end

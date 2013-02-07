@@ -20,6 +20,12 @@ gem install fake_dynamo
 fake_dynamo --port 4567
 ````
 
+send a DELETE request to reset the database. eg
+
+````
+curl -X DELETE http://localhost:4567
+````
+
 # Clients
 
 * aws-sdk

@@ -15,6 +15,10 @@ module FakeDynamo
       @tables = {}
     end
 
+    def reset
+      @tables = {}
+    end
+
     def process(operation, data)
       validate_payload(operation, data)
       operation = operation.underscore

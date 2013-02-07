@@ -34,5 +34,20 @@ module FakeDynamo
       last_response.status.should eq(400)
     end
 
+    it "should reset database" do
+      post '/', {}.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.ListTables'
+      JSON.parse(last_response.body)["TableNames"].size.should == 1
+
+      delete '/'
+      last_response.should be_ok
+
+      post '/', {}.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.ListTables'
+      JSON.parse(last_response.body)["TableNames"].size.should == 0
+
+      post '/', data.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable'
+      post '/', {}.to_json, 'HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.ListTables'
+      JSON.parse(last_response.body)["TableNames"].size.should == 1
+    end
+
   end
 end
