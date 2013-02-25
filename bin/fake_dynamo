@@ -19,7 +19,34 @@ OptionParser.new do |opts|
   opts.on("-c", "--compact", "Default: #{options[:compact]}") do |v|
     options[:compact] = v
   end
+
+  opts.on "-P", "--pid PIDFILE", "Where to write the pid" do |pid|
+    options[:pid] = pid
+  end
+
+  opts.on "-d", "--[no-]daemonize", "Detaches the process" do |daemonize|
+    options[:daemonize] = daemonize
+  end
+
 end.parse!
+
+if options[:daemonize]
+  Process.daemon(true, true)
+end
+
+if (pid = options[:pid])
+  if File.exist?(pid)
+    existing_pid = File.open(pid, 'r').read.chomp.to_i
+    running = Process.getpgid(existing_pid) rescue false
+    if running
+      warn "Error, Process #{existing_pid} already running"
+      exit 1
+    else
+      warn "Cleaning up stale pid at #{pid}"
+    end
+  end
+  File.open(pid, 'w') { |f| f.write(Process.pid) }
+end
 
 FakeDynamo::Storage.db_path = options[:db]
 
