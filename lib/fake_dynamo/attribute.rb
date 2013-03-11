@@ -5,7 +5,7 @@ module FakeDynamo
     def initialize(name, value, type)
       @name, @value, @type = name, value, type
 
-      if @type == 'B'
+      if @type == 'B' and value
         @value = Base64.decode64(value)
       end
 
