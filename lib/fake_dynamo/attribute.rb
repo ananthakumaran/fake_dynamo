@@ -64,8 +64,8 @@ module FakeDynamo
 
     def ==(attribute)
       @name == attribute.name &&
-        @value == attribute.value &&
-        @type == attribute.type
+        @type == attribute.type &&
+        (@type == 'N' ? @value.to_f == attribute.value.to_f : @value == attribute.value)
     end
 
     def <=>(other)
@@ -83,7 +83,7 @@ module FakeDynamo
     end
 
     def hash
-      name.hash ^ value.hash ^ type.hash
+      name.hash ^ (type == 'N' ? value.to_f : value).hash ^ type.hash
     end
 
     class << self
