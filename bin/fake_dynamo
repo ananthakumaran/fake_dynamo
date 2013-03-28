@@ -24,7 +24,7 @@ OptionParser.new do |opts|
     options[:pid] = pid
   end
 
-  opts.on "-d", "--[no-]daemonize", "Detaches the process" do |daemonize|
+  opts.on "-D", "--[no-]daemonize", "Detaches the process" do |daemonize|
     options[:daemonize] = daemonize
   end
 
