@@ -30,10 +30,6 @@ module FakeDynamo
       raise UnknownOperationException, "Unknown operation: #{operation}" unless available_operations.include? operation
     end
 
-    def available_operations
-      api_config[:operations].keys
-    end
-
     def validate_input(operation, data)
       api_input_spec(operation).each do |attribute, spec|
         validate_spec(attribute, data[attribute], spec, [])
@@ -71,7 +67,7 @@ module FakeDynamo
           when :within
             range = constrain[:within]
             unless range.include? data.size
-              add_errors("The parameter '#{param(attribute, parents)}' value '#{data}' should be within #{range} characters")
+              add_errors("The parameter '#{param(attribute, parents)}' value '#{data}' should be within #{range}")
             end
           when :enum
             enum = constrain[:enum]
@@ -81,7 +77,7 @@ module FakeDynamo
           when :structure
             structure = constrain[:structure]
             structure.each do |attribute, spec|
-              validate_spec(attribute, data[attribute], spec, new_parents)
+              validate_spec(attribute, data[attribute], spec, parents + ["member"])
             end
           when :map
             map = constrain[:map]
@@ -92,8 +88,8 @@ module FakeDynamo
             end
           when :list
             raise "#{param(attribute, parents)} must be a Array" unless data.kind_of? Array
-            data.each do |element|
-              validate_spec(element, element, constrain[:list], new_parents)
+            data.each_with_index do |element, i|
+              validate_spec(element, element, constrain[:list], new_parents + [(i+1).to_s])
             end
           else
             raise "Unhandled constraint #{constrain}"
@@ -111,7 +107,11 @@ module FakeDynamo
     end
 
     def api_input_spec(operation)
-      api_config[:operations][operation][:input]
+      api_config[:operations].find { |spec| spec[:name] == operation }[:inputs]
+    end
+
+    def available_operations
+      @available_operations ||= api_config[:operations].map { |spec| spec[:name] }
     end
 
     def api_config
@@ -119,7 +119,7 @@ module FakeDynamo
     end
 
     def api_config_path
-      File.join File.expand_path(File.dirname(__FILE__)), 'api.yml'
+      File.join File.expand_path(File.dirname(__FILE__)), 'api_2012-08-10.yml'
     end
 
     def validate_type(value, attribute)
@@ -160,5 +160,35 @@ module FakeDynamo
       end
     end
 
+    def validate_range_key(key_schema)
+      unless key_schema.range_key
+        raise ValidationException, 'Table KeySchema does not have a range key'
+      end
+    end
+
+    def validate_hash_key(index, table)
+      if index.hash_key != table.hash_key
+        raise ValidationException, "Index KeySchema does not have the same leading hash key as table KeySchema for index"
+      end
+    end
+
+    def validate_projection(projection)
+      if projection.type == 'INCLUDE'
+        unless projection.non_key_attributes
+          raise ValidationException, "ProjectionType is #{projection.type}, but NonKeyAttributes is not specified"
+        end
+      else
+        if projection.non_key_attributes
+          raise ValidationException, "ProjectionType is #{projection.type}, but NonKeyAttributes is specified"
+        end
+      end
+    end
+
+    def validate_index_names(indexes)
+      names = indexes.map(&:name)
+      if names.uniq.size != names.size
+        raise ValidationException, "Duplicate index name: #{names.find { |n| names.count(n) > 1 }}"
+      end
+    end
   end
 end

@@ -4,8 +4,8 @@ module FakeDynamo
     include Filter
 
     attr_accessor :creation_date_time, :read_capacity_units, :write_capacity_units,
-                  :name, :status, :key_schema, :items, :size_bytes, :last_increased_time,
-                  :last_decreased_time
+                  :name, :status, :attribute_definitions, :key_schema, :items, :size_bytes,
+                  :local_secondary_indexes, :last_increased_time, :last_decreased_time
 
     def initialize(data)
       extract_values(data)
@@ -15,6 +15,7 @@ module FakeDynamo
     def description
       {
         'TableDescription' => {
+          'AttributeDefinitions' => attribute_definitions.map(&:description),
           'CreationDateTime' => creation_date_time,
           'KeySchema' => key_schema.description,
           'ProvisionedThroughput' => {
@@ -22,14 +23,25 @@ module FakeDynamo
             'WriteCapacityUnits' => write_capacity_units
           },
           'TableName' => name,
-          'TableStatus' => status
-        }
+          'TableStatus' => status,
+          'ItemCount' => items.count,
+          'TableSizeBytes' => size_bytes
+        }.merge(local_secondary_indexes_description)
       }
+    end
+
+    def local_secondary_indexes_description
+      if local_secondary_indexes
+        { 'LocalSecondaryIndexes' => local_secondary_indexes.map(&:description) }
+      else
+        {}
+      end
     end
 
     def create_table_data
       {
         'TableName' => name,
+        'AttributeDefinitions' => attribute_definitions.map(&:description),
         'KeySchema' => key_schema.description,
         'ProvisionedThroughput' => {
           'ReadCapacityUnits' => read_capacity_units,
@@ -45,13 +57,8 @@ module FakeDynamo
       }
     end
 
-    def size_description
-      { 'ItemCount' => items.count,
-        'TableSizeBytes' => size_bytes }
-    end
-
     def describe_table
-      { 'Table' => description['TableDescription'] }.merge(size_description)
+      { 'Table' => description['TableDescription'] }
     end
 
     def activate
@@ -78,7 +85,7 @@ module FakeDynamo
 
       @read_capacity_units, @write_capacity_units = read_capacity_units, write_capacity_units
 
-      response = description.merge(size_description)
+      response = description
 
       if last_increased_time
         response['TableDescription']['ProvisionedThroughput']['LastIncreaseDateTime'] = @last_increased_time
@@ -403,8 +410,12 @@ module FakeDynamo
 
     def extract_values(data)
       @name = data['TableName']
-      @key_schema = KeySchema.new(data['KeySchema'])
+      @key_schema = KeySchema.new(data['KeySchema'], data['AttributeDefinitions'])
+      set_local_secondary_indexes(data)
+      @attribute_definitions = data['AttributeDefinitions'].map(&Attribute.method(:from_data))
       set_throughput(data['ProvisionedThroughput'])
+
+      validate_attribute_definitions
     end
 
     def set_throughput(throughput)
@@ -412,5 +423,28 @@ module FakeDynamo
       @write_capacity_units = throughput['WriteCapacityUnits']
     end
 
+    def set_local_secondary_indexes(data)
+      if indexes_data = data['LocalSecondaryIndexes']
+        @local_secondary_indexes = indexes_data.map do |index|
+          LocalSecondaryIndex.from_data(index, data['AttributeDefinitions'], @key_schema)
+        end
+        validate_range_key(key_schema)
+        validate_index_names(@local_secondary_indexes)
+      end
+    end
+
+    def validate_attribute_definitions
+      attribute_keys = @attribute_definitions.map(&:name)
+      used_keys = @key_schema.keys
+      if @local_secondary_indexes
+        used_keys += @local_secondary_indexes.map(&:key_schema).map(&:keys).flatten
+      end
+
+      used_keys.uniq!
+
+      if used_keys.uniq.size != attribute_keys.size
+        raise ValidationException, "Some AttributeDefinitions are not used AttributeDefinitions: #{attribute_keys.inspect}, keys used: #{used_keys.inspect}"
+      end
+    end
   end
 end

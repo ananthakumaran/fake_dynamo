@@ -7,9 +7,12 @@ module FakeDynamo
     let(:data) do
       {
         "TableName" => "Table1",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
+         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "AttributeName1","AttributeType" => "S"},
-          "RangeKeyElement" => {"AttributeName" => "AttributeName2","AttributeType" => "N"}},
+        [{"AttributeName" => "AttributeName1","KeyType" => "HASH"},
+         {"AttributeName" => "AttributeName2","KeyType" => "RANGE"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end

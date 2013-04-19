@@ -6,9 +6,12 @@ module FakeDynamo
     let(:data) do
       {
         "TableName" => "Table1",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
+         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "AttributeName1","AttributeType" => "S"},
-          "RangeKeyElement" => {"AttributeName" => "AttributeName2","AttributeType" => "N"}},
+        [{"AttributeName" => "AttributeName1", "KeyType" => "HASH"},
+         {"AttributeName" => "AttributeName2", "KeyType" => "RANGE"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end
@@ -416,7 +419,8 @@ module FakeDynamo
       end
 
       it 'should not allow to query on a table without rangekey' do
-        data['KeySchema'].delete('RangeKeyElement')
+        data['KeySchema'].delete_at(1)
+        data['AttributeDefinitions'].delete_at(1)
         t = Table.new(data)
         expect {
           t.query(query)

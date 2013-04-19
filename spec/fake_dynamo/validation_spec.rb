@@ -9,9 +9,12 @@ module FakeDynamo
     let(:data) do
       {
         "TableName" => "Table1",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
+         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "AttributeName1","AttributeType" => "S"},
-          "RangeKeyElement" => {"AttributeName" => "AttributeName2","AttributeType" => "N"}},
+        [{"AttributeName" => "AttributeName1","KeyType" => "HASH"},
+         {"AttributeName" => "AttributeName2","KeyType" => "RANGE"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end
@@ -38,12 +41,17 @@ module FakeDynamo
 
     context '#validate_key_data' do
       let(:schema) do
-        KeySchema.new({'HashKeyElement' => { 'AttributeName' => 'id', 'AttributeType' => 'S'}})
+        KeySchema.new(
+          [{ 'AttributeName' => 'id', 'KeyType' => 'HASH'}],
+          [{"AttributeName" => "id","AttributeType" => "S"}])
       end
 
       let(:schema_with_range) do
-        KeySchema.new({'HashKeyElement' => { 'AttributeName' => 'id', 'AttributeType' => 'S'},
-                        'RangeKeyElement' => { 'AttributeName' => 'time', 'AttributeType' => 'N'}})
+        KeySchema.new(
+          [{ 'AttributeName' => 'id', 'KeyType' => 'HASH'},
+           { 'AttributeName' => 'time', 'KeyType' => 'RANGE'}],
+          [{ 'AttributeName' => 'id', 'AttributeType' => 'S'},
+           { 'AttributeName' => 'time', 'AttributeType' => 'N'}])
       end
 
       it 'should validate the schema' do

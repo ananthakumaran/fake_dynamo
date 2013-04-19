@@ -6,8 +6,10 @@ module FakeDynamo
 
     let(:table) do
       {"TableName" => "User",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "id","AttributeType" => "S"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "id","AttributeType" => "S"}},
+        [{"AttributeName" => "id","KeyType" => "HASH"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end

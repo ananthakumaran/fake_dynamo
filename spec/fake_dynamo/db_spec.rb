@@ -5,17 +5,22 @@ module FakeDynamo
     let(:data) do
       {
         "TableName" => "Table1",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
+         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "AttributeName1","AttributeType" => "S"},
-          "RangeKeyElement" => {"AttributeName" => "AttributeName2","AttributeType" => "N"}},
+        [{"AttributeName" => "AttributeName1","KeyType" => "HASH"},
+         {"AttributeName" => "AttributeName2","KeyType" => "RANGE"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end
 
     let(:user_table) do
       {"TableName" => "User",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "id","AttributeType" => "S"}],
         "KeySchema" =>
-        {"HashKeyElement" => {"AttributeName" => "id","AttributeType" => "S"}},
+        [{"AttributeName" => "id","KeyType" => "HASH"}],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end
@@ -33,7 +38,7 @@ module FakeDynamo
       it 'should describe table' do
         table = subject.create_table(data)
         description = subject.describe_table({'TableName' => 'Table1'})
-        description.should include({
+        description['Table'].should include({
           "ItemCount"=>0,
           "TableSizeBytes"=>0})
       end
