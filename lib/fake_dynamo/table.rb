@@ -155,7 +155,12 @@ module FakeDynamo
       check_conditions(item, data['Expected'])
 
       @items.delete(key) if item
-      return_values(data, item)
+      if !item
+        item = Item.from_key(key)
+        consumed_capacity(data).merge(item.collection_metrics(data))
+      else
+        return_values(data, item).merge(consumed_capacity(data)).merge(item.collection_metrics(data))
+      end
     end
 
     def batch_delete_request(data)
@@ -172,10 +177,11 @@ module FakeDynamo
       check_conditions(item, data['Expected'])
 
       unless item
+        item = Item.from_key(key)
         if create_item?(data)
-          item = @items[key] = Item.from_key(key)
+          @items[key] = item
         else
-          return consumed_capacity(data)
+          return consumed_capacity(data).merge(item.collection_metrics(data))
         end
         item_created = true
       end
@@ -183,8 +189,10 @@ module FakeDynamo
       old_item = deep_copy(item)
       begin
         old_hash = item.as_hash
-        data['AttributeUpdates'].each do |name, update_data|
-          item.update(name, update_data)
+        if attribute_updates = data['AttributeUpdates']
+          attribute_updates.each do |name, update_data|
+            item.update(name, update_data)
+          end
         end
       rescue => e
         if item_created
@@ -195,7 +203,7 @@ module FakeDynamo
         raise e
       end
 
-      return_values(data, old_hash, item)
+      return_values(data, old_hash, item).merge(item.collection_metrics(data))
     end
 
     def deep_copy(x)
@@ -329,9 +337,13 @@ module FakeDynamo
     end
 
     def create_item?(data)
-      data['AttributeUpdates'].any? do |name, update_data|
-        action = update_data['Action']
-        ['PUT', 'ADD', nil].include? action
+      if attribute_updates = data['AttributeUpdates']
+        attribute_updates.any? do |name, update_data|
+          action = update_data['Action']
+          ['PUT', 'ADD', nil].include? action
+        end
+      else
+        true
       end
     end
 
