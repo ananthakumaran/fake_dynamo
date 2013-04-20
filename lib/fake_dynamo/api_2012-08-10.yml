@@ -47,6 +47,7 @@
                       - :list:
                         - :blob
             - :required
+            - :within: !ruby/range 1..100
             AttributesToGet:
             - :list:
               - :string
@@ -192,6 +193,7 @@
                           - :list:
                             - :blob
                   - :required
+        - :within: !ruby/range 1..25
     - :required
     ReturnConsumedCapacity:
     - :string

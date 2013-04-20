@@ -106,7 +106,7 @@ module FakeDynamo
     end
 
     def collection_metrics(data)
-      if data['ReturnItemCollectionMetrics']
+      if data['ReturnItemCollectionMetrics'] == 'SIZE'
         {  'ItemCollectionMetrics' =>
           { 'ItemCollectionKey' => key.primary.as_hash,
             'SizeEstimateRangeGB' => [ 0, 1 ] } }

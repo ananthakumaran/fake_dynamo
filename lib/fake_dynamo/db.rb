@@ -90,26 +90,32 @@ module FakeDynamo
 
     def batch_get_item(data)
       response = {}
+      consumed_capacity = {}
 
       data['RequestItems'].each do |table_name, table_data|
         table = find_table(table_name)
 
         unless response[table_name]
-          response[table_name] = { 'ConsumedCapacityUnits' => 1, 'Items' => [] }
+          response[table_name] = []
+          set_consumed_capacity(consumed_capacity, table, data)
         end
 
         table_data['Keys'].each do |key|
           if item_hash = table.get_raw_item(key, table_data['AttributesToGet'])
-            response[table_name]['Items'] << item_hash
+            response[table_name] << item_hash
           end
         end
       end
 
-      { 'Responses' => response, 'UnprocessedKeys' => {}}
+      response = { 'Responses' => response, 'UnprocessedKeys' => {} }
+      merge_consumed_capacity(consumed_capacity, response)
     end
 
     def batch_write_item(data)
       response = {}
+      consumed_capacity = {}
+      item_collection_metrics = {}
+      merge_metrics = false
       items = {}
       request_count = 0
 
@@ -118,6 +124,7 @@ module FakeDynamo
         table = find_table(table_name)
 
         items[table.name] ||= {}
+        item_collection_metrics[table.name] ||= []
 
         requests.each do |request|
           if request['PutRequest']
@@ -139,20 +146,46 @@ module FakeDynamo
       # real modification
       items.each do |table_name, requests|
         table = find_table(table_name)
+        item_collection_metrics[table.name] ||= []
+
         requests.each do |key, value|
           if value == :delete
             table.batch_delete(key)
           else
             table.batch_put(value)
           end
+
+          unless (metrics = Item.from_key(key).collection_metrics(data)).empty?
+            merge_metrics = true
+            item_collection_metrics[table.name] << metrics['ItemCollectionMetrics']
+          end
+
         end
-        response[table_name] = table.consumed_capacity(data)
+        set_consumed_capacity(consumed_capacity, table, data)
       end
 
-      { 'Responses' => response, 'UnprocessedItems' => {} }
+      response = { 'UnprocessedItems' => {} }
+      response = merge_consumed_capacity(consumed_capacity, response)
+      if merge_metrics
+        response.merge!({'ItemCollectionMetrics' => item_collection_metrics})
+      end
+      response
     end
 
     private
+
+    def set_consumed_capacity(consumed_capacity, table, data)
+      unless (capacity = table.consumed_capacity(data)).empty?
+        consumed_capacity[table.name] = capacity['ConsumedCapacity']
+      end
+    end
+
+    def merge_consumed_capacity(consumed_capacity, response)
+      unless consumed_capacity.empty?
+        response['ConsumedCapacity'] = consumed_capacity.values
+      end
+      response
+    end
 
     def check_item_conflict(items, table_name, key)
       if items[table_name][key]

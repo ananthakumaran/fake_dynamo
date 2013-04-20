@@ -295,13 +295,10 @@ module FakeDynamo
 
         response.should eq({"Responses"=>
                              {"User"=>
-                               {"ConsumedCapacityUnits"=>1,
-                                 "Items"=>[{"id"=>{"S"=>"1"}}, {"id"=>{"S"=>"2"}}]},
+                               [{"id"=>{"S"=>"1"}}, {"id"=>{"S"=>"2"}}],
                                "Table1"=>
-                               {"ConsumedCapacityUnits"=>1,
-                                 "Items"=>
-                                 [{"AttributeName1"=>{"S"=>"test"},
-                                    "AttributeName2"=>{"N"=>"11"}}]}},
+                               [{"AttributeName1"=>{"S"=>"test"},
+                                   "AttributeName2"=>{"N"=>"11"}}]},
                              "UnprocessedKeys"=>{}})
       end
 
@@ -312,12 +309,12 @@ module FakeDynamo
                                          'Keys' => [{ 'id' => { 'S' => '1' }},
                                                     { 'id' => { 'S' => 'asd' }}]
                                        }
-                                     }})
+                                     },
+                                     'ReturnConsumedCapacity' => 'TOTAL'})
         response.should eq({"Responses"=>
-                             {"User"=>
-                               {"ConsumedCapacityUnits"=>1,
-                                 "Items"=>[{"id"=>{"S"=>"1"}}]}},
-                             "UnprocessedKeys"=>{}})
+                             {"User"=> [{"id"=>{"S"=>"1"}}]},
+                             "UnprocessedKeys"=>{},
+                             "ConsumedCapacity" => ['CapacityUnits' => 1, 'TableName' => 'User']})
       end
 
       it 'should fail if table not found' do
@@ -394,7 +391,8 @@ module FakeDynamo
                                      'ReturnConsumedCapacity' => 'TOTAL'
                                    })
 
-        response['Responses'].should eq('User' => consumed_capacity )
+        response.should eq('ConsumedCapacity' => [consumed_capacity['ConsumedCapacity']],
+                            'UnprocessedItems' => {})
 
         response = subject.get_item({'TableName' => 'User',
                                       'Key' => {'id' => { 'S' => 'ananth'}}})
@@ -424,7 +422,7 @@ module FakeDynamo
                             }
                           })
 
-        }.to raise_error(FakeDynamo::ValidationException, /too many items/i)
+        }.to raise_error(FakeDynamo::ValidationException, /within.*25/i)
       end
 
       it 'should fail on request size greater than 1 mb' do
