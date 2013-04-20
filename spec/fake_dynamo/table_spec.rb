@@ -24,7 +24,9 @@ module FakeDynamo
           'AttributeName3' => { 'S' => "another" },
           'binary' => { 'B' => Base64.encode64("binary") },
           'binary_set' => { 'BS' => [Base64.encode64("binary")] }
-        }}
+        },
+        'ReturnConsumedCapacity' => 'TOTAL'
+      }
     end
 
     let(:key) do
@@ -32,10 +34,11 @@ module FakeDynamo
         'Key' => {
           'HashKeyElement' => { 'S' => 'test' },
           'RangeKeyElement' => { 'N' => '11' }
-        }}
+        },
+        'ReturnConsumedCapacity' => 'TOTAL'}
     end
 
-    let(:consumed_capacity) { { 'ConsumedCapacityUnits' => 1 } }
+    let(:consumed_capacity) { {'ConsumedCapacity' => { 'CapacityUnits' => 1, 'TableName' => 'Table1' }} }
 
     subject { Table.new(data) }
 
@@ -236,7 +239,7 @@ module FakeDynamo
                                         'RangeKeyElement' => { 'N' => '11' }
                                       }
                                     })
-        response.should eq(consumed_capacity)
+        response.should eq({})
       end
 
       it 'should filter attributes' do
@@ -245,10 +248,11 @@ module FakeDynamo
                                         'HashKeyElement' => { 'S' => 'test' },
                                         'RangeKeyElement' => { 'N' => '11' }
                                       },
-                                      'AttributesToGet' => ['AttributeName3', 'xxx']
+                                      'AttributesToGet' => ['AttributeName3', 'xxx'],
+                                      'ReturnConsumedCapacity' => 'TOTAL'
                                     })
-        response.should eq({ 'Item' => { 'AttributeName3' => { 'S' => 'another'}},
-                             'ConsumedCapacityUnits' => 1})
+        response.should eq({ 'Item' => { 'AttributeName3' => { 'S' => 'another'}}}
+            .merge(consumed_capacity))
       end
     end
 

@@ -339,6 +339,8 @@ module FakeDynamo
         db
       end
 
+      let(:consumed_capacity) { {'ConsumedCapacity' => { 'CapacityUnits' => 1, 'TableName' => 'User' }} }
+
       it 'should validate payload' do
         expect {
           subject.process('BatchWriteItem', {})
@@ -388,10 +390,11 @@ module FakeDynamo
         response = subject.process('BatchWriteItem', {
                                      'RequestItems' => {
                                        'User' => [{'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
-                                     }
+                                     },
+                                     'ReturnConsumedCapacity' => 'TOTAL'
                                    })
 
-        response['Responses'].should eq('User' => { 'ConsumedCapacityUnits' => 1 })
+        response['Responses'].should eq('User' => consumed_capacity )
 
         response = subject.get_item({'TableName' => 'User',
                                       'Key' => {'HashKeyElement' => { 'S' => 'ananth'}}})
@@ -405,9 +408,10 @@ module FakeDynamo
                         })
 
         response = subject.get_item({'TableName' => 'User',
-                                      'Key' => {'HashKeyElement' => { 'S' => 'ananth'}}})
+                                      'Key' => {'HashKeyElement' => { 'S' => 'ananth'}},
+                                      'ReturnConsumedCapacity' => 'TOTAL'})
 
-        response.should eq({"ConsumedCapacityUnits"=>1})
+        response.should eq(consumed_capacity)
       end
 
       it 'fails it the requested operation is more than 25' do

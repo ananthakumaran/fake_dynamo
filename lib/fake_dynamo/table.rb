@@ -18,16 +18,31 @@ module FakeDynamo
           'AttributeDefinitions' => attribute_definitions.map(&:description),
           'CreationDateTime' => creation_date_time,
           'KeySchema' => key_schema.description,
-          'ProvisionedThroughput' => {
-            'ReadCapacityUnits' => read_capacity_units,
-            'WriteCapacityUnits' => write_capacity_units
-          },
+          'ProvisionedThroughput' => throughput_description,
           'TableName' => name,
           'TableStatus' => status,
           'ItemCount' => items.count,
           'TableSizeBytes' => size_bytes
         }.merge(local_secondary_indexes_description)
       }
+    end
+
+    def throughput_description
+      result = {
+        'NumberOfDecreasesToday' => 0,
+        'ReadCapacityUnits' => read_capacity_units,
+        'WriteCapacityUnits' => write_capacity_units
+      }
+
+      if last_increased_time
+        result['LastIncreaseDateTime'] = @last_increased_time
+      end
+
+      if last_decreased_time
+        result['LastDecreaseDateTime'] = @last_decreased_time
+      end
+
+      result
     end
 
     def local_secondary_indexes_description
@@ -86,15 +101,6 @@ module FakeDynamo
       @read_capacity_units, @write_capacity_units = read_capacity_units, write_capacity_units
 
       response = description
-
-      if last_increased_time
-        response['TableDescription']['ProvisionedThroughput']['LastIncreaseDateTime'] = @last_increased_time
-      end
-
-      if last_decreased_time
-        response['TableDescription']['ProvisionedThroughput']['LastDecreaseDateTime'] = @last_decreased_time
-      end
-
       response['TableDescription']['TableStatus'] = 'UPDATING'
       response
     end
@@ -105,7 +111,7 @@ module FakeDynamo
       check_conditions(old_item, data['Expected'])
       @items[item.key] = item
 
-      consumed_capacity.merge(return_values(data, old_item))
+      return_values(data, old_item).merge(item.collection_metrics(data))
     end
 
     def batch_put_request(data)
@@ -117,7 +123,7 @@ module FakeDynamo
     end
 
     def get_item(data)
-      response = consumed_capacity
+      response = consumed_capacity(data)
       if item_hash = get_raw_item(data['Key'], data['AttributesToGet'])
         response.merge!('Item' => item_hash)
       end
@@ -149,7 +155,7 @@ module FakeDynamo
       check_conditions(item, data['Expected'])
 
       @items.delete(key) if item
-      consumed_capacity.merge(return_values(data, item))
+      return_values(data, item)
     end
 
     def batch_delete_request(data)
@@ -169,7 +175,7 @@ module FakeDynamo
         if create_item?(data)
           item = @items[key] = Item.from_key(key)
         else
-          return consumed_capacity
+          return consumed_capacity(data)
         end
         item_created = true
       end
@@ -189,7 +195,7 @@ module FakeDynamo
         raise e
       end
 
-      consumed_capacity.merge(return_values(data, old_hash, item))
+      return_values(data, old_hash, item)
     end
 
     def deep_copy(x)
@@ -359,15 +365,21 @@ module FakeDynamo
                  raise 'unknown return value'
                end
 
-      unless result.empty?
-        { 'Attributes' => result }
+      result = unless result.empty?
+                 { 'Attributes' => result }
+               else
+                 {}
+               end
+
+      result.merge(consumed_capacity(data))
+    end
+
+    def consumed_capacity(data)
+      if data['ReturnConsumedCapacity'] == 'TOTAL'
+        {'ConsumedCapacity' => { 'CapacityUnits' => 1, 'TableName' => @name }}
       else
         {}
       end
-    end
-
-    def consumed_capacity
-      { 'ConsumedCapacityUnits' => 1 }
     end
 
     def check_conditions(old_item, conditions)

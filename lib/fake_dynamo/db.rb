@@ -146,7 +146,7 @@ module FakeDynamo
             table.batch_put(value)
           end
         end
-        response[table_name] = { 'ConsumedCapacityUnits' => 1 }
+        response[table_name] = table.consumed_capacity(data)
       end
 
       { 'Responses' => response, 'UnprocessedItems' => {} }

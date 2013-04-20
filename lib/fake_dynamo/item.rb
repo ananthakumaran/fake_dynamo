@@ -104,5 +104,15 @@ module FakeDynamo
         attributes[name] = attribute
       end
     end
+
+    def collection_metrics(data)
+      if data['ReturnItemCollectionMetrics']
+        {  'ItemCollectionMetrics' =>
+          { 'ItemCollectionKey' => key.primary.as_hash,
+            'SizeEstimateRangeGB' => [ 0, 1 ] } }
+      else
+        {}
+      end
+    end
   end
 end
