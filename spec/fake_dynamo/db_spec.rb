@@ -25,9 +25,82 @@ module FakeDynamo
       }
     end
 
-    it 'should not allow to create duplicate tables' do
-      subject.create_table(data)
-      expect { subject.create_table(data) }.to raise_error(ResourceInUseException, /duplicate/i)
+    let(:user_table_a) do
+      {"TableName" => "User",
+        "AttributeDefinitions" =>
+        [{"AttributeName" => "id","AttributeType" => "S"},
+         {"AttributeName" => "age","AttributeType" => "S"},
+         {"AttributeName" => "name","AttributeType" => "S"}],
+        "KeySchema" =>
+        [{"AttributeName" => "id","KeyType" => "HASH"},
+         {"AttributeName" => "age", "KeyType" => "RANGE"}],
+        "LocalSecondaryIndexes" =>
+        [{"IndexName" => "age",
+           "KeySchema" =>
+           [{"AttributeName" => "id", "KeyType" => "HASH"},
+            {"AttributeName" => "name", "KeyType" => "RANGE"}],
+           "Projection" => {
+             "ProjectionType" => "INCLUDE",
+             "NonKeyAttributes" => ["name", "gender"]
+           }
+         }],
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+      }
+    end
+
+    context 'CreateTable' do
+      it 'should not allow to create duplicate tables' do
+        subject.create_table(data)
+        expect { subject.create_table(data) }.to raise_error(ResourceInUseException, /duplicate/i)
+      end
+
+      it 'should allow to create table with secondary indexes' do
+        subject.create_table(user_table_a)
+      end
+
+      it 'should fail on extra attribute' do
+        user_table_a['AttributeDefinitions'] << {"AttributeName" => "gender","AttributeType" => "S"}
+        expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /some attributedefinitions.*not.*used/i)
+      end
+
+      it 'should fail on missing attribute' do
+        user_table_a['AttributeDefinitions'].delete_at(1)
+        expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /some.*attributes.*not.*defined/i)
+      end
+
+      context 'LocalSecondaryIndex' do
+        let(:lsi) { user_table_a['LocalSecondaryIndexes'][0] }
+
+        it 'should fail if range key is missing' do
+          lsi['KeySchema'].delete_at(1)
+          expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /not.*range.*key/i)
+        end
+
+        it 'should fail on duplicate index names' do
+          duplicate = lsi.clone()
+          user_table_a['LocalSecondaryIndexes'] << duplicate
+          expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /duplicate index/i)
+        end
+
+        it 'should fail on different hash key' do
+          lsi['KeySchema'][0]['AttributeName'] = 'age'
+          expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /not have.*same.*hash key/i)
+        end
+
+        context 'projection' do
+          let(:projection) { user_table_a['LocalSecondaryIndexes'][0]['Projection'] }
+
+          it 'should fail if non key attributes are specified unnecessarily' do
+            projection['ProjectionType'] = 'KEYS_ONLY'
+            expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /NonKeyAttributes.*specified/i)
+          end
+
+          it 'should fail if non key attributes are not specified' do
+            projection.delete('NonKeyAttributes')
+            expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /NonKeyAttributes.*not.*specified/i)
+          end
+        end
+      end
     end
 
     it 'should fail on unknown operation' do
