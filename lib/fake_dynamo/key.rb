@@ -9,10 +9,10 @@ module FakeDynamo
       def from_data(key_data, key_schema)
         key = Key.new
         validate_key_data(key_data, key_schema)
-        key.primary = Attribute.from_hash(key_schema.hash_key.name, key_data['HashKeyElement'])
+        key.primary = Attribute.from_hash(key_schema.hash_key.name, key_data[key_schema.hash_key.name])
 
         if key_schema.range_key
-          key.range = Attribute.from_hash(key_schema.range_key.name, key_data['RangeKeyElement'])
+          key.range = Attribute.from_hash(key_schema.range_key.name, key_data[key_schema.range_key.name])
         end
         key
       end
@@ -56,14 +56,6 @@ module FakeDynamo
       result = @primary.as_hash
       if @range
         result.merge!(@range.as_hash)
-      end
-      result
-    end
-
-    def as_key_hash
-      result = { 'HashKeyElement' => { @primary.type => @primary.value }}
-      if @range
-        result.merge!({'RangeKeyElement' => { @range.type => @range.value }})
       end
       result
     end

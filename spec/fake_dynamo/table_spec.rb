@@ -32,8 +32,8 @@ module FakeDynamo
     let(:key) do
       {'TableName' => 'Table1',
         'Key' => {
-          'HashKeyElement' => { 'S' => 'test' },
-          'RangeKeyElement' => { 'N' => '11' }
+          'AttributeName1' => { 'S' => 'test' },
+          'AttributeName2' => { 'N' => '11' }
         },
         'ReturnConsumedCapacity' => 'TOTAL'}
     end
@@ -108,8 +108,8 @@ module FakeDynamo
                            }})
         response = subject.get_item({'TableName' => 'Table1',
                                       'Key' => {
-                                        'HashKeyElement' => { 'S' => 'test' },
-                                        'RangeKeyElement' => { 'N' => '3' }
+                                        'AttributeName1' => { 'S' => 'test' },
+                                        'AttributeName2' => { 'N' => '3' }
                                       }})
 
         response['Item']['AttributeName3'].should eq('N' => '4.44444')
@@ -235,8 +235,8 @@ module FakeDynamo
       it 'should return empty when the key is not found' do
         response = subject.get_item({'TableName' => 'Table1',
                                       'Key' => {
-                                        'HashKeyElement' => { 'S' => 'xxx' },
-                                        'RangeKeyElement' => { 'N' => '11' }
+                                        'AttributeName1' => { 'S' => 'xxx' },
+                                        'AttributeName2' => { 'N' => '11' }
                                       }
                                     })
         response.should eq({})
@@ -245,8 +245,8 @@ module FakeDynamo
       it 'should filter attributes' do
         response = subject.get_item({'TableName' => 'Table1',
                                       'Key' => {
-                                        'HashKeyElement' => { 'S' => 'test' },
-                                        'RangeKeyElement' => { 'N' => '11' }
+                                        'AttributeName1' => { 'S' => 'test' },
+                                        'AttributeName2' => { 'N' => '11' }
                                       },
                                       'AttributesToGet' => ['AttributeName3', 'xxx'],
                                       'ReturnConsumedCapacity' => 'TOTAL'
@@ -323,7 +323,7 @@ module FakeDynamo
         subject.get_item(key).should include('Item' => item['Item'])
 
         expect do
-          key['Key']['HashKeyElement']['S'] = 'unknown'
+          key['Key']['AttributeName1']['S'] = 'unknown'
           put['AttributeUpdates'].merge!({ 'xx' => { 'Value' => { 'N' => 'one'}, 'Action' => 'ADD'}})
           subject.update_item(key.merge(put))
         end.to raise_error(ValidationException, /numeric/)
@@ -339,7 +339,7 @@ module FakeDynamo
       end
 
       it "should create new item if the key doesn't exist" do
-        key['Key']['HashKeyElement']['S'] = 'new'
+        key['Key']['AttributeName1']['S'] = 'new'
         subject.update_item(key.merge(put))
         subject.get_item(key).should include( "Item"=>
                                               {"AttributeName1"=>{"S"=>"new"},
@@ -348,7 +348,7 @@ module FakeDynamo
       end
 
       it "shouldn't create a new item if key doesn't exist and action is delete" do
-        key['Key']['HashKeyElement']['S'] = 'new'
+        key['Key']['AttributeName1']['S'] = 'new'
         subject.update_item(key.merge(delete))
         subject.get_item(key).should eq(consumed_capacity)
       end
@@ -448,7 +448,7 @@ module FakeDynamo
         result = subject.query(query.merge({'ScanIndexForward' => false}))
         result['Items'].first['AttributeName2'].should eq({'N' => '15'})
 
-        query['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att1' }, 'RangeKeyElement' => { "N" => '7' }}
+        query['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att1' }, 'AttributeName2' => { "N" => '7' }}
         result = subject.query(query)
         result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
         result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
@@ -457,7 +457,7 @@ module FakeDynamo
         result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
         result['Items'][0]['AttributeName2'].should eq({'N' => '5'})
 
-        query['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att1' }, 'RangeKeyElement' => { "N" => '8' }}
+        query['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att1' }, 'AttributeName2' => { "N" => '8' }}
         result = subject.query(query)
         result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
         result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
@@ -469,7 +469,7 @@ module FakeDynamo
 
       it 'should return lastevaluated key' do
         result = subject.query(query)
-        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"11"}}
+        result['LastEvaluatedKey'].should == {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"11"}}
         result = subject.query(query.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -479,13 +479,13 @@ module FakeDynamo
       end
 
       it 'should handle exclusive start key' do
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"7"}}}))
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"7"}}}))
         result['Count'].should eq(4)
         result['Items'].first['AttributeName2'].should eq({'N' => '9'})
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"8"}}}))
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"8"}}}))
         result['Count'].should eq(4)
         result['Items'].first['AttributeName2'].should eq({'N' => '9'})
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"88"}}}))
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"88"}}}))
         result['Count'].should eq(0)
         result['Items'].should be_empty
       end
@@ -563,7 +563,7 @@ module FakeDynamo
       it 'should return lastevaluated key' do
         scan['Limit'] = 5
         result = subject.scan(scan)
-        result['LastEvaluatedKey'].should == {"HashKeyElement"=>{"S"=>"att1"}, "RangeKeyElement"=>{"N"=>"9"}}
+        result['LastEvaluatedKey'].should == {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"9"}}
         result = subject.scan(scan.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -573,12 +573,12 @@ module FakeDynamo
       end
 
       it 'should handle ordering' do
-        scan['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att2' }, 'RangeKeyElement' => { "N" => '7' }}
+        scan['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att2' }, 'AttributeName2' => { "N" => '7' }}
         result = subject.scan(scan)
         result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
         result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
 
-        scan['ExclusiveStartKey'] = { 'HashKeyElement' => { 'S' => 'att2' }, 'RangeKeyElement' => { "N" => '8' }}
+        scan['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att2' }, 'AttributeName2' => { "N" => '8' }}
         result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
         result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
       end

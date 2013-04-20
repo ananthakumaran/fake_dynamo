@@ -50,6 +50,7 @@
             AttributesToGet:
             - :list:
               - :string
+            - :within: !ruby/range 1..10000
             ConsistentRead:
             - :boolean
     - :required
@@ -828,6 +829,7 @@
     AttributesToGet:
     - :list:
       - :string
+    - :within: !ruby/range 1..10000
     ConsistentRead:
     - :boolean
     ReturnConsumedCapacity:
@@ -1026,6 +1028,7 @@
     AttributesToGet:
     - :list:
       - :string
+    - :within: !ruby/range 1..10000
     Limit:
     - :integer
     ConsistentRead:
@@ -1157,6 +1160,7 @@
     AttributesToGet:
     - :list:
       - :string
+    - :within: !ruby/range 1..10000
     Limit:
     - :integer
     Select:

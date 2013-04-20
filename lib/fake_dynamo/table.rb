@@ -233,7 +233,7 @@ module FakeDynamo
       end
 
       if last_evaluated_item
-        response['LastEvaluatedKey'] = last_evaluated_item.key.as_key_hash
+        response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
       end
       response
     end
@@ -254,7 +254,7 @@ module FakeDynamo
       end
 
       if last_evaluated_item
-        response['LastEvaluatedKey'] = last_evaluated_item.key.as_key_hash
+        response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
       end
 
       response

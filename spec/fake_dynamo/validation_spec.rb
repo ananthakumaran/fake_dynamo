@@ -55,10 +55,10 @@ module FakeDynamo
       end
 
       it 'should validate the schema' do
-        [[{'HashKeyElement' => { 'N' => '1234' }}, schema, /mismatch/],
-         [{'HashKeyElement' => { 'S' => '1234' }}, schema_with_range, /missing.*range/i],
-         [{'HashKeyElement' => { 'S' => '1234' }, 'RangeKeyElement' => { 'N' => '1234'}}, schema, /not present/],
-         [{'HashKeyElement' => { 'S' => '1234' }, 'RangeKeyElement' => { 'S' => '1234'}}, schema_with_range, /mismatch/]
+        [[{'id' => { 'N' => '1234' }}, schema, /type mismatch/i],
+         [{'id' => { 'S' => '1234' }}, schema_with_range, /not match/i],
+         [{'id' => { 'S' => '1234' }, 'time' => { 'N' => '1234'}}, schema, /not match/i],
+         [{'id' => { 'S' => '1234' }, 'time' => { 'S' => '1234'}}, schema_with_range, /type mismatch/i]
         ].each do |data, schema, message|
           expect do
             subject.validate_key_data(data, schema)
