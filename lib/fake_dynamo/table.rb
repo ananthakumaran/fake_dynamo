@@ -211,34 +211,39 @@ module FakeDynamo
     end
 
     def query(data)
-      unless key_schema.range_key
-        raise ValidationException, "Query can be performed only on a table with a HASH,RANGE key schema"
-      end
-
-      count_and_attributes_to_get_present?(data)
+      range_key_present
+      select_and_attributes_to_get_present(data)
       validate_limit(data)
 
-      hash_attribute = Attribute.from_hash(key_schema.hash_key.name, data['HashKeyValue'])
+      index = nil
+      if index_name = data['IndexName']
+        index = local_secondary_indexes.find { |i| i.name == index_name }
+        raise ValidationException, "The provided starting key is invalid" unless index
+        schema = index.key_schema
+      else
+        schema = key_schema
+      end
+
+      hash_condition = data['KeyConditions'][schema.hash_key.name]
+      validate_hash_condition(hash_condition)
+
+      hash_attribute = Attribute.from_hash(schema.hash_key.name, hash_condition['AttributeValueList'].first)
       matched_items = get_items_by_hash_key(hash_attribute)
 
       forward = data.has_key?('ScanIndexForward') ? data['ScanIndexForward'] : true
-      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward)
+      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward, schema)
 
-      if data['RangeKeyCondition']
-        conditions = {key_schema.range_key.name => data['RangeKeyCondition']}
+      if !(range_condition = data['KeyConditions'].clone.tap { |h| h.delete(schema.hash_key.name) }).empty?
+        validate_range_condition(range_condition, schema)
+        conditions = range_condition
       else
         conditions = {}
       end
 
-      result, last_evaluated_item, _ = filter(matched_items, conditions, data['Limit'], true)
+      results, last_evaluated_item, _ = filter(matched_items, conditions, data['Limit'], true)
 
-      response = {
-        'Count' => result.size,
-        'ConsumedCapacityUnits' => 1 }
-
-      unless data['Count']
-        response['Items'] = result.map { |r| filter_attributes(r, data['AttributesToGet']) }
-      end
+      response = {'Count' => results.size}.merge(consumed_capacity(data))
+      merge_items(response, data, results, index)
 
       if last_evaluated_item
         response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
@@ -247,19 +252,16 @@ module FakeDynamo
     end
 
     def scan(data)
-      count_and_attributes_to_get_present?(data)
+      select_and_attributes_to_get_present(data)
       validate_limit(data)
       conditions = data['ScanFilter'] || {}
-      all_items = drop_till_start(items.values, data['ExclusiveStartKey'], true)
-      result, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)
+      all_items = drop_till_start(items.values, data['ExclusiveStartKey'], true, key_schema)
+      results, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)
       response = {
-        'Count' => result.size,
-        'ScannedCount' => scaned_count,
-        'ConsumedCapacityUnits' => 1 }
+        'Count' => results.size,
+        'ScannedCount' => scaned_count}.merge(consumed_capacity(data))
 
-      unless data['Count']
-        response['Items'] = result.map { |r| filter_attributes(r, data['AttributesToGet']) }
-      end
+      merge_items(response, data, results)
 
       if last_evaluated_item
         response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
@@ -268,9 +270,41 @@ module FakeDynamo
       response
     end
 
-    def count_and_attributes_to_get_present?(data)
-      if data['Count'] and data['AttributesToGet']
-        raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the Count"
+    def merge_items(response, data, results, index = nil)
+      if data['Select'] != 'COUNT'
+        attributes_to_get = nil # select everything
+
+        if data['AttributesToGet']
+          attributes_to_get = data['AttributesToGet']
+        elsif data['Select'] == 'ALL_PROJECTED_ATTRIBUTES'
+          attributes_to_get = projected_attributes(index)
+        end
+
+        response['Items'] = results.map { |r| filter_attributes(r, attributes_to_get) }
+      end
+
+      response
+    end
+
+    def projected_attributes(index)
+      if !index
+        raise ValidationException, "ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName"
+      else
+        case index.projection.type
+        when 'ALL'
+          nil
+        when 'KEYS_ONLY'
+          (key_schema.keys + index.key_schema.keys).uniq
+        when 'INCLUDE'
+          (key_schema.keys + index.key_schema.keys + index.projection.non_key_attributes).uniq
+        end
+      end
+    end
+
+    def select_and_attributes_to_get_present(data)
+      select = data['Select']
+      if select and data['AttributesToGet'] and (select != 'SPECIFIC_ATTRIBUTES')
+        raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the #{select}"
       end
     end
 
@@ -280,7 +314,7 @@ module FakeDynamo
       end
     end
 
-    def drop_till_start(all_items, start_key_hash, forward)
+    def drop_till_start(all_items, start_key_hash, forward, schema)
       all_items = all_items.sort_by { |item| item.key }
 
       unless forward
@@ -288,7 +322,7 @@ module FakeDynamo
       end
 
       if start_key_hash
-        start_key = Key.from_data(start_key_hash, key_schema)
+        start_key = Key.from_data(start_key_hash, schema)
         all_items.drop_while do |item|
           if forward
             item.key <= start_key
@@ -317,6 +351,8 @@ module FakeDynamo
           end
         end
 
+        scaned_count += 1
+
         if select
           result << item
           if (limit -= 1) == 0
@@ -324,8 +360,6 @@ module FakeDynamo
             break
           end
         end
-
-        scaned_count += 1
       end
       [result, last_evaluated_item, scaned_count]
     end
@@ -468,6 +502,12 @@ module FakeDynamo
 
       if used_keys.uniq.size != attribute_keys.size
         raise ValidationException, "Some AttributeDefinitions are not used AttributeDefinitions: #{attribute_keys.inspect}, keys used: #{used_keys.inspect}"
+      end
+    end
+
+    def range_key_present
+      unless key_schema.range_key
+        raise ValidationException, "Query can be performed only on a table with a HASH,RANGE key schema"
       end
     end
   end

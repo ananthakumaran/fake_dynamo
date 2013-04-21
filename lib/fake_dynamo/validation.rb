@@ -196,5 +196,21 @@ module FakeDynamo
         raise ValidationException, "Duplicate index name: #{names.find { |n| names.count(n) > 1 }}"
       end
     end
+
+    def validate_hash_condition(condition)
+      unless condition
+        raise ValidationException, "Query condition missed key schema element #{key_schema.hash_key.name}"
+      end
+
+      if condition['ComparisonOperator'] != 'EQ'
+        raise ValidationException, "Query key condition not supported"
+      end
+    end
+
+    def validate_range_condition(condition, schema)
+      unless condition.has_key?(schema.range_key.name)
+        raise ValidationException, "Query condition missed key schema element #{schema.range_key.name}"
+      end
+    end
   end
 end

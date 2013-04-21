@@ -407,10 +407,15 @@ module FakeDynamo
         {
           'TableName' => 'Table1',
           'Limit' => 5,
-          'HashKeyValue' => {'S' => 'att1'},
-          'RangeKeyCondition' => {
-            'AttributeValueList' => [{'N' => '1'}],
-            'ComparisonOperator' => 'GT'
+          'KeyConditions' => {
+            'AttributeName1' => {
+              'AttributeValueList' => [{'S' => 'att1'}],
+              'ComparisonOperator' => 'EQ'
+            },
+            'AttributeName2' => {
+              'AttributeValueList' => [{'N' => '1'}],
+              'ComparisonOperator' => 'GT'
+            }
           },
           'ScanIndexForward' => true
         }
@@ -418,7 +423,7 @@ module FakeDynamo
 
       it 'should not allow count and attributes_to_get simutaneously' do
         expect {
-          subject.query({'Count' => 0, 'AttributesToGet' => ['xx']})
+          subject.query({'Select' => 'COUNT', 'AttributesToGet' => ['xx']})
         }.to raise_error(ValidationException, /count/i)
       end
 
@@ -492,13 +497,13 @@ module FakeDynamo
 
 
       it 'should return all elements if not rangekeycondition is given' do
-        query.delete('RangeKeyCondition')
+        query['KeyConditions'].delete('AttributeName2')
         result = subject.query(query)
         result['Count'].should eq(5)
       end
 
       it 'should handle between operator' do
-        query['RangeKeyCondition'] = {
+        query['KeyConditions']['AttributeName2'] = {
           'AttributeValueList' => [{'N' => '1'}, {'N' => '7'}],
             'ComparisonOperator' => 'BETWEEN'
         }
@@ -542,7 +547,7 @@ module FakeDynamo
 
       it 'should not allow count and attributes_to_get simutaneously' do
         expect {
-          subject.scan({'Count' => 0, 'AttributesToGet' => ['xx']})
+          subject.scan({'Select' => 'COUNT', 'AttributesToGet' => ['xx']})
         }.to raise_error(ValidationException, /count/i)
       end
 

@@ -1027,6 +1027,7 @@
     - :string
     Select:
     - :string
+    - :enum: [ALL_ATTRIBUTES, ALL_PROJECTED_ATTRIBUTES, COUNT, SPECIFIC_ATTRIBUTES]
     AttributesToGet:
     - :list:
       - :string
@@ -1063,6 +1064,7 @@
             - :string
             - :required
             - :enum: [EQ, LE, LT, GE, GT, BEGINS_WITH, BETWEEN]
+    - :within: !ruby/range 1..2
     ScanIndexForward:
     - :boolean
     ExclusiveStartKey:
@@ -1167,6 +1169,7 @@
     - :integer
     Select:
     - :string
+    - :enum: [ALL_ATTRIBUTES, ALL_PROJECTED_ATTRIBUTES, COUNT, SPECIFIC_ATTRIBUTES]
     ScanFilter:
     - :map:
         :key:

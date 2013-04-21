@@ -241,10 +241,15 @@ module FakeDynamo
                           'TableName' => 'Table1',
                           'Limit' => 5,
                           'Count' => true,
-                          'HashKeyValue' => {'S' => 'att1'},
-                          'RangeKeyCondition' => {
-                            'AttributeValueList' => [{'N' => '1'}],
-                            'ComparisonOperator' => 'GT'
+                          'KeyConditions' => {
+                            'AttributeName1' => {
+                              'AttributeValueList' => [{'S' => 'att1'}],
+                              'ComparisonOperator' => 'EQ'
+                            },
+                            'AttributeName2' => {
+                              'AttributeValueList' => [{'N' => '1'}],
+                              'ComparisonOperator' => 'GT'
+                            }
                           },
                           'ScanIndexForward' => true
                         })
