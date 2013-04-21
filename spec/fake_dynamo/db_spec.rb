@@ -71,6 +71,11 @@ module FakeDynamo
       context 'LocalSecondaryIndex' do
         let(:lsi) { user_table_a['LocalSecondaryIndexes'][0] }
 
+        it 'should fail on invalid KeyType' do
+          lsi["KeySchema"][0]['KeyType'] = 'invalid'
+          expect { subject.process('CreateTable', user_table_a) }.to raise_error(ValidationException, /invalid.*enum/)
+        end
+
         it 'should fail if range key is missing' do
           lsi['KeySchema'].delete_at(1)
           expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /not.*range.*key/i)
@@ -395,7 +400,7 @@ module FakeDynamo
                                      },
                                      'ReturnConsumedCapacity' => 'TOTAL'
                                    })
-
+        response['ItemCollectionMetrics'].should be_nil
         response.should eq('ConsumedCapacity' => [consumed_capacity['ConsumedCapacity']],
                             'UnprocessedItems' => {})
 
@@ -404,17 +409,21 @@ module FakeDynamo
 
         response['Item']['id'].should eq('S' => 'ananth')
 
-        subject.process('BatchWriteItem', {
-                          'RequestItems' => {
-                            'User' => [{ 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => 'ananth' }}}}]
-                          }
-                        })
+        response = subject.process('BatchWriteItem', {
+                                     'RequestItems' => {
+                                       'User' => [{ 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => 'ananth' }}}}]
+                                     },
+                                     'ReturnItemCollectionMetrics' => 'SIZE'
+                                   })
+
+        response['ItemCollectionMetrics'].should_not be_nil
 
         response = subject.get_item({'TableName' => 'User',
                                       'Key' => {'id' => { 'S' => 'ananth'}},
                                       'ReturnConsumedCapacity' => 'TOTAL'})
 
         response.should eq(consumed_capacity)
+
       end
 
       it 'fails it the requested operation is more than 25' do

@@ -8,10 +8,19 @@ module FakeDynamo
         "TableName" => "Table1",
         "AttributeDefinitions" =>
         [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
-         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
+          {"AttributeName" => "AttributeName2","AttributeType" => "N"},
+          {"AttributeName" => "AttributeName3","AttributeType" => "N"}],
         "KeySchema" =>
         [{"AttributeName" => "AttributeName1", "KeyType" => "HASH"},
-         {"AttributeName" => "AttributeName2", "KeyType" => "RANGE"}],
+          {"AttributeName" => "AttributeName2", "KeyType" => "RANGE"}],
+        "LocalSecondaryIndexes" => [{
+            "IndexName" => "one",
+            "KeySchema" => [{"AttributeName" => "AttributeName1", "KeyType" => "HASH"},
+              {"AttributeName" => "AttributeName3", "KeyType" => "RANGE"}],
+            "Projection" => {
+              "ProjectionType" => "ALL"
+            }
+          }],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
     end
@@ -391,12 +400,12 @@ module FakeDynamo
     context '#query' do
       subject do
         t = Table.new(data)
-        t.put_item(item)
         (1..3).each do |i|
           (15.downto(1)).each do |j|
             next if j.even?
             item['Item']['AttributeName1']['S'] = "att#{i}"
             item['Item']['AttributeName2']['N'] = j.to_s
+            item['Item']['AttributeName3'] = {'N' => j.to_s}
             t.put_item(item)
           end
         end
@@ -421,6 +430,71 @@ module FakeDynamo
         }
       end
 
+      let(:index_query) do
+        {
+          'TableName' => 'Table1',
+          'Limit' => 5,
+          'IndexName' => 'one',
+          'KeyConditions' => {
+            'AttributeName1' => {
+              'AttributeValueList' => [{'S' => 'att1'}],
+              'ComparisonOperator' => 'EQ'
+            },
+            'AttributeName3' => {
+              'AttributeValueList' => [{'N' => '1'}],
+              'ComparisonOperator' => 'GT'
+            }
+          },
+          'ScanIndexForward' => true
+        }
+      end
+
+      context 'query projection' do
+        let(:query) do
+          {
+            'TableName' => 'Table1',
+            'Limit' => 5,
+            'Select' => 'ALL_PROJECTED_ATTRIBUTES',
+            'IndexName' => 'one',
+            'KeyConditions' => {
+              'AttributeName1' => {
+                'AttributeValueList' => [{'S' => 'test'}],
+                'ComparisonOperator' => 'EQ'
+              }
+            },
+            'ScanIndexForward' => true
+          }
+        end
+
+        let(:projection) { data['LocalSecondaryIndexes'][0]['Projection'] }
+
+        it 'should return all attributes' do
+          t = Table.new(data)
+          t.put_item(item)
+          response = t.query(query)
+          response['Items'].first.keys.size.should eq(5)
+        end
+
+        it 'should return return only the keys' do
+          projection['ProjectionType'] = 'KEYS_ONLY'
+          t = Table.new(data)
+          t.put_item(item)
+          response = t.query(query)
+          response['Items'].first.keys.size.should eq(3)
+        end
+
+        it 'should return return only the non key attributes' do
+          projection['ProjectionType'] = 'INCLUDE'
+          projection['NonKeyAttributes'] = ['binary_set']
+          t = Table.new(data)
+          t.put_item(item)
+          response = t.query(query)
+          response['Items'].first.keys.size.should eq(4)
+        end
+      end
+
+
+
       it 'should not allow count and attributes_to_get simutaneously' do
         expect {
           subject.query({'Select' => 'COUNT', 'AttributesToGet' => ['xx']})
@@ -430,6 +504,8 @@ module FakeDynamo
       it 'should not allow to query on a table without rangekey' do
         data['KeySchema'].delete_at(1)
         data['AttributeDefinitions'].delete_at(1)
+        data['AttributeDefinitions'].delete_at(1)
+        data.delete('LocalSecondaryIndexes')
         t = Table.new(data)
         expect {
           t.query(query)
@@ -446,6 +522,27 @@ module FakeDynamo
         result = subject.query(query)
         result['Count'].should eq(5)
       end
+
+      it 'should fail if index name is missing' do
+        index_query.delete('IndexName')
+        expect { subject.query(index_query) }.to raise_error(ValidationException, /missed.*key/i)
+      end
+
+      it 'should fail if hash condition is missing' do
+        index_query['KeyConditions'].delete('AttributeName1')
+        expect { subject.query(index_query) }.to raise_error(ValidationException, /missed.*key.*schema/i)
+      end
+
+      it 'should fail if hash condition is not EQ' do
+        index_query['KeyConditions']['AttributeName1']['ComparisonOperator'] = 'GT'
+        expect { subject.query(index_query) }.to raise_error(ValidationException, /condition not supported/i)
+      end
+
+      it 'should handle index query' do
+        result = subject.query(index_query)
+        result['Count'].should eq(5)
+      end
+
 
       it 'should handle scanindexforward' do
         result = subject.query(query)
@@ -549,6 +646,18 @@ module FakeDynamo
         expect {
           subject.scan({'Select' => 'COUNT', 'AttributesToGet' => ['xx']})
         }.to raise_error(ValidationException, /count/i)
+      end
+
+      it 'should only return count' do
+        scan['Select'] = 'COUNT'
+        response = subject.scan(scan)
+        response['Count'].should eq(24)
+        response['Items'].should be_nil
+      end
+
+      it 'should not allow ALL_PROJECTED_ATTRIBUTES' do
+        scan['Select'] = 'ALL_PROJECTED_ATTRIBUTES'
+        expect { subject.scan(scan) }.to raise_error(ValidationException, /querying.*indexname/i)
       end
 
       it 'should only allow limit greater than zero' do
