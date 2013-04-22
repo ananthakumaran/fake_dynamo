@@ -1,10 +1,10 @@
 # FakeDynamo [![Build Status](https://secure.travis-ci.org/ananthakumaran/fake_dynamo.png)](http://travis-ci.org/ananthakumaran/fake_dynamo)
 
-local hosted, inmemory dynamodb emulator.
+local hosted, inmemory Amazon DynamoDB emulator.
 
 ## Versions
 
-| Amazon Dynamodb | fake_dynamo |
+| Amazon DynamoDB | FakeDynamo  |
 | --------------- | ----------- |
 | 2012-08-10      | 0.2.0       |
 | 2011-12-05      | 0.1.3       |
