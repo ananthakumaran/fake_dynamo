@@ -2,20 +2,27 @@
 
 local hosted, inmemory dynamodb emulator.
 
+## Versions
 
-# Caveats
+| Amazon Dynamodb | fake_dynamo |
+| --------------- | ----------- |
+| 2012-08-10      | 0.2.0       |
+| 2011-12-05      | 0.1.3       |
+
+
+## Caveats
 
 *  `ConsumedCapacityUnits` value will be 1 always.
 *  The response size is not constrained by 1mb limit. So operation
    like `BatchGetItem` will return all items irrespective of the
    response size
 
-# Usage
+## Usage
 
 __requires ruby >= 1.9__
 
 ````
-gem install fake_dynamo
+gem install fake_dynamo --version 0.2.0
 
 fake_dynamo --port 4567
 ````
@@ -26,7 +33,7 @@ send a DELETE request to reset the database. eg
 curl -X DELETE http://localhost:4567
 ````
 
-# Clients
+## Clients
 
 * aws-sdk
 
@@ -41,7 +48,7 @@ AWS.config(:use_ssl => false,
 __please open a pull request with your configuration if you are using
 fake_dynamo with clients other than the ones mentioned above__.
 
-# Storage
+## Storage
 fake_dynamo stores the `write operations` (request that changes the
 data) in `/usr/local/var/fake_dynamo/db.fdb` and replays it before
 starting the server. Because of the way fake_dynamo stores the data,
