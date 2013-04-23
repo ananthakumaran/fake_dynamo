@@ -81,13 +81,13 @@ module FakeDynamo
             end
           when :map
             map = constrain[:map]
-            raise "#{param(attribute, parents)} must be a Hash" unless data.kind_of? Hash
+            raise ValidationException, "#{param(attribute, parents)} must be a Hash" unless data.kind_of? Hash
             data.each do |key, value|
               validate_spec(key, key, map[:key], new_parents)
               validate_spec(key, value, map[:value], new_parents)
             end
           when :list
-            raise "#{param(attribute, parents)} must be a Array" unless data.kind_of? Array
+            raise ValidationException, "#{param(attribute, parents)} must be a Array" unless data.kind_of? Array
             data.each_with_index do |element, i|
               validate_spec(element, element, constrain[:list], new_parents + [(i+1).to_s])
             end
