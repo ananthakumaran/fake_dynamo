@@ -4,12 +4,16 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'fake_dynamo'
 require 'optparse'
 
-options = { :port => 4567, :compact => false, :db => '/usr/local/var/fake_dynamo/db.fdb' }
+options = { :port => 4567, :bind => '127.0.0.1', :compact => false, :db => '/usr/local/var/fake_dynamo/db.fdb' }
 OptionParser.new do |opts|
   opts.banner = "Usage: fake_dynamo [options]"
 
   opts.on("-p", "--port PORT", "Default: #{options[:port]}") do |v|
     options[:port] = v
+  end
+
+  opts.on("-b", "--bind ADDR", "Default: #{options[:bind]}") do |v|
+    options[:bind] = v
   end
 
   opts.on("-d", "--db PATH", "Default: #{options[:db]}") do |v|
@@ -56,7 +60,7 @@ if options[:compact]
 end
 
 FakeDynamo::Storage.instance.load_aof
-FakeDynamo::Server.run!(:port => options[:port])
+FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind])
 
 at_exit {
   FakeDynamo::Storage.instance.shutdown
