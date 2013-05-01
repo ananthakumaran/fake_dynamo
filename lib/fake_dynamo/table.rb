@@ -231,7 +231,11 @@ module FakeDynamo
       matched_items = get_items_by_hash_key(hash_attribute)
 
       forward = data.has_key?('ScanIndexForward') ? data['ScanIndexForward'] : true
-      matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward, schema)
+      if index
+        matched_items = drop_till_start_index(matched_items, data['ExclusiveStartKey'], forward, schema)
+      else
+        matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward, schema)
+      end
 
       if !(range_condition = data['KeyConditions'].clone.tap { |h| h.delete(schema.hash_key.name) }).empty?
         validate_range_condition(range_condition, schema)
@@ -328,6 +332,27 @@ module FakeDynamo
             item.key <= start_key
           else
             item.key >= start_key
+          end
+        end
+      else
+        all_items
+      end
+    end
+
+    def drop_till_start_index(all_items, start_key_hash, forward, schema)
+      all_items = all_items.sort_by { |item| Key.from_index_item(item, schema) }
+
+      unless forward
+        all_items = all_items.reverse
+      end
+
+      if start_key_hash
+        start_key = Key.from_index_schema(start_key_hash, schema, key_schema)
+        all_items.drop_while do |item|
+          if forward
+            Key.from_index_item(item, schema) <= start_key
+          else
+            Key.from_index_item(item, schema) >= start_key
           end
         end
       else
