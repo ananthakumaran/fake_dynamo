@@ -250,7 +250,11 @@ module FakeDynamo
       merge_items(response, data, results, index)
 
       if last_evaluated_item
-        response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
+        if index
+          response['LastEvaluatedKey'] = Key.from_index_item(last_evaluated_item, schema).as_hash
+        else
+          response['LastEvaluatedKey'] = last_evaluated_item.key.as_hash
+        end
       end
       response
     end
