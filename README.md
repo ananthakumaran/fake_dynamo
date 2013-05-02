@@ -55,3 +55,13 @@ starting the server. Because of the way fake_dynamo stores the data,
 file size tend to grow by time. so fake_dynamo will compact the database
 during start up if the file size is greater than 100mb. you can
 manually compact it by passing --compact flag.
+
+## Guardfile
+You can use the [guard-process](https://rubygems.org/gems/guard-process) gem with guard to run fake_dynamo along with
+your other development environment
+
+```ruby
+guard 'process', :name => 'FakeDynamo', :command => 'fake_dynamo' do
+  watch('Gemfile.lock')
+end
+```
