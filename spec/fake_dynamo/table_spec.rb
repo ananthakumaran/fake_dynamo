@@ -405,7 +405,7 @@ module FakeDynamo
             next if j.even?
             item['Item']['AttributeName1']['S'] = "att#{i}"
             item['Item']['AttributeName2']['N'] = j.to_s
-            item['Item']['AttributeName3'] = {'N' => j.to_s}
+            item['Item']['AttributeName3'] = {'N' => ((j % 3) + 2).to_s}
             t.put_item(item)
           end
         end
@@ -543,6 +543,12 @@ module FakeDynamo
         result['Count'].should eq(5)
       end
 
+      it 'should sort based on lsi range key' do
+        index_query.delete('Limit')
+        result = subject.query(index_query)
+        keys = result['Items'].map { |i| [i['AttributeName3']['N'].to_i, i['AttributeName2']['N'].to_i] }
+        keys.should eq(keys.sort)
+      end
 
       it 'should handle scanindexforward' do
         result = subject.query(query)
@@ -593,7 +599,7 @@ module FakeDynamo
       end
 
 
-      it 'should return all elements if not rangekeycondition is given' do
+      it 'should return all elements if rangekeycondition is not given' do
         query['KeyConditions'].delete('AttributeName2')
         result = subject.query(query)
         result['Count'].should eq(5)
