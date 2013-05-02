@@ -10,7 +10,7 @@ module FakeDynamo
     def description
       description = [{'AttributeName' => hash_key.name, 'KeyType' => 'HASH'}]
       if range_key
-        description << [{'AttributeName' => range_key.name, 'KeyType' => 'RANGE'}]
+        description << {'AttributeName' => range_key.name, 'KeyType' => 'RANGE'}
       end
       description
     end
