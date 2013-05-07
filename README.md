@@ -35,7 +35,7 @@ curl -X DELETE http://localhost:4567
 
 ## Clients
 
-* aws-sdk
+* aws-sdk-ruby (AWS SDK for Ruby)
 
 ````ruby
 AWS.config(:use_ssl => false,
@@ -43,6 +43,17 @@ AWS.config(:use_ssl => false,
            :dynamo_db_port => 4567,
            :access_key_id => "xxx",
            :secret_access_key => "xxx")
+````
+
+* aws-sdk-js (AWS SDK for Node.js)
+
+````js
+ AWS.config.update({apiVersion:      "2012-08-10",
+                    sslEnabled:      false,
+                    endpoint:        "localhost:4567",
+                    accessKeyId:     "xxx",
+                    secretAccessKey: "xxx",
+                    region:          "xxx"});
 ````
 
 __please open a pull request with your configuration if you are using
