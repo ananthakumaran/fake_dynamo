@@ -280,12 +280,19 @@ module FakeDynamo
 
     def merge_items(response, data, results, index = nil)
       if data['Select'] != 'COUNT'
-        attributes_to_get = nil # select everything
+        if index
+          attributes_to_get = projected_attributes(index)
+        else
+          attributes_to_get = nil # select everything
+        end
+
 
         if data['AttributesToGet']
           attributes_to_get = data['AttributesToGet']
         elsif data['Select'] == 'ALL_PROJECTED_ATTRIBUTES'
           attributes_to_get = projected_attributes(index)
+        elsif data['Select'] == 'ALL_ATTRIBUTES'
+          attributes_to_get = nil
         end
 
         response['Items'] = results.map { |r| filter_attributes(r, attributes_to_get) }
