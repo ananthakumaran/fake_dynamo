@@ -15,3 +15,7 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
+bin/node_modules/*
+bin/*.json
+bin/reverse_dynamo
+bin/test_binary
