@@ -491,6 +491,21 @@ module FakeDynamo
           response = t.query(query)
           response['Items'].first.keys.size.should eq(4)
         end
+
+        it 'should return last evaluated key when the item processed size exceeds 1 mb' do
+          t = Table.new(data)
+          t.put_item(item)
+          25.times do |i|
+            t.put_item({'TableName' => 'User',
+                'Item' => { 'AttributeName1' => { 'S' => '1' },
+                  'AttributeName2' => { 'N' => i},
+                  'payload' => { 'S' => ('x' * 50 * 1024) }}})
+          end
+          query['KeyConditions']['AttributeName1']['AttributeValueList'] = [{'S' => '1'}]
+          query['KeyConditions'].delete('AttributeName2')
+          response = t.query(query)
+          response['LastEvaluatedKey'].should_not be_empty
+        end
       end
 
 

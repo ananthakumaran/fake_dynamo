@@ -39,6 +39,10 @@ module FakeDynamo
       result
     end
 
+    def to_json(*)
+      as_hash.to_json
+    end
+
     def update(name, data)
       if key[name]
         raise ValidationException, "Cannot update attribute #{name}. This attribute is part of the key"
