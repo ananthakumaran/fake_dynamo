@@ -195,7 +195,7 @@ module FakeDynamo
 
 
     def find_table(table_name)
-      tables[table_name] or raise ResourceNotFoundException, "Table : #{table_name} not found"
+      tables[table_name] or raise ResourceNotFoundException, "Table: #{table_name} not found"
     end
 
     def check_max_request(count)
