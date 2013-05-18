@@ -91,6 +91,8 @@ module FakeDynamo
     def batch_get_item(data)
       response = {}
       consumed_capacity = {}
+      unprocessed_keys = {}
+      sack = Sack.new(response)
 
       data['RequestItems'].each do |table_name, table_data|
         table = find_table(table_name)
@@ -101,13 +103,22 @@ module FakeDynamo
         end
 
         table_data['Keys'].each do |key|
-          if item_hash = table.get_raw_item(key, table_data['AttributesToGet'])
-            response[table_name] << item_hash
+          if sack.has_space?
+            if item_hash = table.get_raw_item(key, table_data['AttributesToGet'])
+              response[table_name] << item_hash
+            end
+          else
+            unless unprocessed_keys[table_name]
+              unprocessed_keys[table_name] = {'Keys' => []}
+              unprocessed_keys[table_name]['AttributesToGet'] = table_data['AttributesToGet'] if table_data['AttributesToGet']
+            end
+
+            unprocessed_keys[table_name]['Keys'] << key
           end
         end
       end
 
-      response = { 'Responses' => response, 'UnprocessedKeys' => {} }
+      response = { 'Responses' => response, 'UnprocessedKeys' => unprocessed_keys }
       merge_consumed_capacity(consumed_capacity, response)
     end
 

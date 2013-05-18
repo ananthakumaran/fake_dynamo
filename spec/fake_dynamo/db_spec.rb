@@ -289,6 +289,20 @@ module FakeDynamo
         }.to raise_error(FakeDynamo::ValidationException)
       end
 
+      it 'should return unprocessed keys if the response is more than 1 mb' do
+        keys = []
+        request = { 'RequestItems' => {'User' => { 'Keys' => keys }}}
+
+        25.times do |i|
+          subject.put_item({'TableName' => 'User',
+              'Item' => { 'id' => { 'S' => i.to_s },
+                'payload' => { 'S' => ('x' * 50 * 1024) }}})
+          keys << { 'id' => { 'S' => i.to_s } }
+        end
+        response = subject.process('BatchGetItem', request);
+        response['UnprocessedKeys']['User']['Keys'].should_not be_empty
+      end
+
       it 'should return items' do
         response = subject.process('BatchGetItem', { 'RequestItems' =>
                                      {
