@@ -1222,6 +1222,12 @@
     ReturnConsumedCapacity:
     - :string
     - :enum: [TOTAL, NONE]
+    TotalSegments:
+    - :integer
+    - :within: !ruby/range 1..4096
+    Segment:
+    - :integer
+    - :within: !ruby/range 0..4095
   :outputs:
     Items:
       :sym: :member

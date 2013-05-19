@@ -66,7 +66,7 @@ module FakeDynamo
             end
           when :within
             range = constrain[:within]
-            unless range.include? data.size
+            unless range.include?(Numeric === data ? data : data.size)
               add_errors("The parameter '#{param(attribute, parents)}' value '#{data}' should be within #{range}")
             end
           when :enum

@@ -212,7 +212,7 @@ module FakeDynamo
 
     def query(data)
       range_key_present
-      select_and_attributes_to_get_present(data)
+      select_and_attributes_to_get_present?(data)
       validate_limit(data)
 
       index = nil
@@ -260,10 +260,21 @@ module FakeDynamo
     end
 
     def scan(data)
-      select_and_attributes_to_get_present(data)
+      select_and_attributes_to_get_present?(data)
+      total_segments_and_segment_present?(data)
       validate_limit(data)
+
       conditions = data['ScanFilter'] || {}
-      all_items = drop_till_start(items.values, data['ExclusiveStartKey'], true, key_schema)
+
+
+      if (segment = data['Segment']) && (total_segments = data['TotalSegments'])
+        chunk_size = (items.values.size / total_segments.to_f).ceil
+        current_segment = items.values.slice(segment * chunk_size, chunk_size) || []
+      else
+        current_segment = items.values
+      end
+
+      all_items = drop_till_start(current_segment, data['ExclusiveStartKey'], true, key_schema)
       results, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)
       response = {
         'Count' => results.size,
@@ -335,10 +346,27 @@ module FakeDynamo
       end
     end
 
-    def select_and_attributes_to_get_present(data)
+    def select_and_attributes_to_get_present?(data)
       select = data['Select']
       if select and data['AttributesToGet'] and (select != 'SPECIFIC_ATTRIBUTES')
         raise ValidationException, "Cannot specify the AttributesToGet when choosing to get only the #{select}"
+      end
+    end
+
+    def total_segments_and_segment_present?(data)
+      segment, total_segments = data['Segment'], data['TotalSegments']
+
+      if (total_segments && !segment)
+        raise ValidationException, "The Segment parameter is required but was not present in the request when parameter TotalSegments is present"
+      end
+
+      if (segment && !total_segments)
+        raise ValidationException, "The TotalSegments parameter is required but was not present in the request when Segment parameter is present"
+      end
+
+      if (segment && total_segments) &&
+          (segment >= total_segments)
+        raise ValidationException, "The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: #{segment} is not less than TotalSegments: #{total_segments}"
       end
     end
 
