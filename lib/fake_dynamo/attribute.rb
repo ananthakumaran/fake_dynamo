@@ -37,7 +37,7 @@ module FakeDynamo
 
     def numeric(n)
       begin
-        Float(n)
+        Rational(n)
       rescue
         raise ValidationException, "The parameter cannot be converted to a numeric value: #{n}"
       end
@@ -65,12 +65,12 @@ module FakeDynamo
     def ==(attribute)
       @name == attribute.name &&
         @type == attribute.type &&
-        (@type == 'N' ? @value.to_f == attribute.value.to_f : @value == attribute.value)
+        (@type == 'N' ? @value.to_r == attribute.value.to_r : @value == attribute.value)
     end
 
     def <=>(other)
       if @type == 'N'
-        @value.to_f <=> other.value.to_f
+        @value.to_r <=> other.value.to_r
       else
         @value <=> other.value
       end
@@ -83,7 +83,7 @@ module FakeDynamo
     end
 
     def hash
-      name.hash ^ (type == 'N' ? value.to_f : value).hash ^ type.hash
+      name.hash ^ (type == 'N' ? value.to_r : value).hash ^ type.hash
     end
 
     class << self
