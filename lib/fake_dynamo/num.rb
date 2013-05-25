@@ -45,7 +45,7 @@ module FakeDynamo
     end
 
     def hash
-      @internal.hash
+      to_s.hash
     end
 
     def add(other)
