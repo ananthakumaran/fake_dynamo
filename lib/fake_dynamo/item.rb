@@ -94,12 +94,7 @@ module FakeDynamo
         validate_type(value, old_attribute)
         case attribute.type
         when "N"
-          new_value = (old_attribute.value.to_f + attribute.value.to_f)
-          if new_value.truncate == new_value
-            new_value = new_value.truncate
-          end
-
-          old_attribute.value = new_value.to_s
+          old_attribute.value = old_attribute.value.add(attribute.value)
         else
           old_attribute.value += attribute.value
           old_attribute.value.uniq!

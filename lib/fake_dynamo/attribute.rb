@@ -3,43 +3,30 @@ module FakeDynamo
     attr_accessor :name, :value, :type
 
     def initialize(name, value, type)
-      @name, @value, @type = name, value, type
+      @name, @type = name, type
+      validate_name!
+      return unless value
 
-      if @type == 'B' and value
-        @value = Base64.decode64(value)
-      end
+      @value = decode(value)
+      validate_value!
+    end
 
-      if @type == 'BS'
-        @value = value.map { |v| Base64.decode64(v) }
-      end
-
-      if ['NS', 'SS', 'BS'].include? @type
-        raise ValidationException, 'An AttributeValue may not contain an empty set' if value.empty?
-        raise ValidationException, 'Input collection contains duplicates' if value.uniq!
-      end
-
-      if ['NS', 'N'].include? @type
-        Array(@value).each do |n|
-          numeric(n)
-        end
-      end
-
-      if ['S', 'SS', 'S', 'BS'].include? @type
-        Array(value).each do |v|
-          raise ValidationException, 'An AttributeValue may not contain an empty string or empty binary' if v == ''
-        end
-      end
-
+    def validate_name!
       if name == ''
         raise ValidationException, 'Empty attribute name'
       end
     end
 
-    def numeric(n)
-      begin
-        Float(n)
-      rescue
-        raise ValidationException, "The parameter cannot be converted to a numeric value: #{n}"
+    def validate_value!
+      if ['NS', 'SS', 'BS'].include? @type
+        raise ValidationException, 'An AttributeValue may not contain an empty set' if @value.empty?
+        raise ValidationException, 'Input collection contains duplicates' if value.uniq!
+      end
+
+      if ['S', 'SS', 'S', 'BS'].include? @type
+        Array(@value).each do |v|
+          raise ValidationException, 'An AttributeValue may not contain an empty string or empty binary' if v == ''
+        end
       end
     end
 
@@ -50,30 +37,38 @@ module FakeDynamo
       }
     end
 
-    def as_hash
-      value = if @type == 'B'
-                Base64.encode64(@value)
-              elsif @type == 'BS'
-                @value.map { |v| Base64.encode64(v) }
-              else
-                @value
-              end
+    def decode(value)
+      case @type
+      when 'B' then Base64.decode64(value)
+      when 'BS' then value.map { |v| Base64.decode64(v) }
+      when 'N' then Num.new(value)
+      when 'NS' then value.map { |v| Num.new(v) }
+      else value
+      end
+    end
 
-      { @name => { @type => value } }
+    def encode(value)
+      case @type
+      when 'B' then Base64.encode64(value)
+      when 'BS' then value.map { |v| Base64.encode64(v) }
+      when 'N' then value.to_s
+      when 'NS' then value.map(&:to_s)
+      else value
+      end
+    end
+
+    def as_hash
+      { @name => { @type => encode(@value) } }
     end
 
     def ==(attribute)
       @name == attribute.name &&
         @type == attribute.type &&
-        (@type == 'N' ? @value.to_f == attribute.value.to_f : @value == attribute.value)
+        @value == attribute.value
     end
 
     def <=>(other)
-      if @type == 'N'
-        @value.to_f <=> other.value.to_f
-      else
-        @value <=> other.value
-      end
+      @value <=> other.value
     end
 
     def eql?(attribute)
@@ -83,7 +78,7 @@ module FakeDynamo
     end
 
     def hash
-      name.hash ^ (type == 'N' ? value.to_f : value).hash ^ type.hash
+      name.hash ^ value.hash ^ type.hash
     end
 
     class << self

@@ -23,11 +23,7 @@ module FakeDynamo
         return false if target_attribute.type != value_attribute.type
       end
 
-      if target_attribute.type == 'N'
-        comparator.call(target_attribute.value.to_f, *value_attribute_list.map(&:value).map(&:to_f))
-      else
-        comparator.call(target_attribute.value, *value_attribute_list.map(&:value))
-      end
+      comparator.call(target_attribute.value, *value_attribute_list.map(&:value))
     end
 
     def validate_supported_types(value_attribute, supported_types)

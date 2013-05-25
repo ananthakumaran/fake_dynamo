@@ -48,7 +48,7 @@ module FakeDynamo
       it "should delete values" do
         subject.attributes['friends'] = Attribute.new('friends', ["1", "2"], "NS")
         subject.delete('friends', { "NS" => ["2", "4"]})
-        subject.attributes['friends'].value.should == ["1"]
+        subject.attributes['friends'].value.should == [Num.new("1")]
       end
     end
 
@@ -73,7 +73,13 @@ module FakeDynamo
       it "should increment numbers" do
         subject.attributes['number'] = Attribute.new('number', '5', 'N')
         subject.add('number', { 'N' => '3'})
-        subject.attributes['number'].value.should eq('8')
+        subject.attributes['number'].value.should eq(Num.new('8'))
+      end
+
+      it "should decrement numbers" do
+        subject.attributes['number'] = Attribute.new('number', '5', 'N')
+        subject.add('number', { 'N' => '-3'})
+        subject.attributes['number'].value.should eq(Num.new('2'))
       end
 
       it "should handle sets" do

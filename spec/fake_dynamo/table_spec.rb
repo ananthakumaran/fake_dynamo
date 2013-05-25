@@ -115,15 +115,16 @@ module FakeDynamo
                              'AttributeName2' => { 'N' => "3" },
                              'AttributeName3' => { 'N' => "4.44444" }
                            }})
-        response = subject.get_item({'TableName' => 'Table1',
-                                      'Key' => {
-                                        'AttributeName1' => { 'S' => 'test' },
-                                        'AttributeName2' => { 'N' => '3' }
-                                      }})
 
-        response['Item']['AttributeName3'].should eq('N' => '4.44444')
+        ['3', '3.0', '3e0', '.3e1', '003'].each do |n|
+          response = subject.get_item({'TableName' => 'Table1',
+                                        'Key' => {
+                                          'AttributeName1' => { 'S' => 'test' },
+                                          'AttributeName2' => { 'N' => n }
+                                        }})
 
-
+          response['Item']['AttributeName3'].should eq('N' => '4.44444')
+        end
       end
 
       it 'should fail if range key is not present' do

@@ -102,7 +102,7 @@ module FakeDynamo
       subject.ne_filter([{'S' => 'bcd'}], s_attr, false).should be_false
       subject.ne_filter([{'S' => '10'}], n_attr, false).should be_false
       subject.ne_filter([{'S' => 'xx'}], s_attr, false).should be_true
-      subject.ne_filter([{'S' => '10'}], n_attr, false).should be_false
+      subject.ne_filter([{'N' => '10.0'}], n_attr, false).should be_false
       subject.ne_filter([{'B' => bstr}], b_attr, false).should be_false
     end
 
