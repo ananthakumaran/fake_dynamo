@@ -92,7 +92,7 @@ module FakeDynamo
       response = {}
       consumed_capacity = {}
       unprocessed_keys = {}
-      sack = Sack.new(response)
+      sack = Sack.new
 
       data['RequestItems'].each do |table_name, table_data|
         table = find_table(table_name)
@@ -106,6 +106,7 @@ module FakeDynamo
           if sack.has_space?
             if item_hash = table.get_raw_item(key, table_data['AttributesToGet'])
               response[table_name] << item_hash
+              sack.add(item_hash)
             end
           else
             unless unprocessed_keys[table_name]

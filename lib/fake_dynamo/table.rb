@@ -421,13 +421,7 @@ module FakeDynamo
     def filter(items, conditions, limit, fail_on_type_mismatch, sack_attributes = nil)
       limit ||= -1
       result = []
-      if sack_attributes
-        sack_result = []
-        sack = Sack.new(sack_result)
-      else
-        sack = Sack.new(result)
-      end
-
+      sack = Sack.new
       last_evaluated_item = nil
       scaned_count = 0
       items.each do |item|
@@ -445,7 +439,11 @@ module FakeDynamo
 
         if select
           result << item
-          sack_result << filter_attributes(item, sack_attributes) if sack_attributes
+          if sack_attributes
+            sack.add(filter_attributes(item, sack_attributes))
+          else
+            sack.add(item)
+          end
 
           if (limit -= 1) == 0 || (!sack.has_space?)
             last_evaluated_item = item
