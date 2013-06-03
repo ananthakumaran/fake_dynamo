@@ -4,7 +4,8 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'fake_dynamo'
 require 'optparse'
 
-options = { :port => 4567, :bind => '127.0.0.1', :compact => false, :db => '/usr/local/var/fake_dynamo/db.fdb' }
+options = { :port => 4567, :bind => '127.0.0.1', :compact => false,
+  :db => '/usr/local/var/fake_dynamo/db.fdb', :log_level => :warn }
 OptionParser.new do |opts|
   opts.banner = "Usage: fake_dynamo [options]"
 
@@ -32,6 +33,10 @@ OptionParser.new do |opts|
     options[:daemonize] = daemonize
   end
 
+  opts.on "-l", "--log-level LEVEL", [:debug, :info, :warn, :error, :fatal], "(debug, info, warn, error, fatal) Default: #{options[:log_level]}" do |level|
+    options[:log_level] = level
+  end
+
 end.parse!
 
 if options[:daemonize]
@@ -53,6 +58,7 @@ if (pid = options[:pid])
 end
 
 FakeDynamo::Storage.db_path = options[:db]
+FakeDynamo::Logger.setup(options[:log_level])
 
 if options[:compact]
   FakeDynamo::Storage.instance.load_aof
@@ -60,7 +66,9 @@ if options[:compact]
 end
 
 FakeDynamo::Storage.instance.load_aof
-FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind])
+FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind]) do |server|
+  server.config[:AccessLog] = []
+end
 
 at_exit {
   FakeDynamo::Storage.instance.shutdown

@@ -24,3 +24,4 @@ module FakeDynamo
 end
 
 FakeDynamo::Storage.db_path = '/tmp/test_db.fdb'
+FakeDynamo::Logger.setup(:debug)
