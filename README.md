@@ -6,16 +6,13 @@ local hosted, inmemory Amazon DynamoDB emulator.
 
 | Amazon DynamoDB | FakeDynamo  |
 | --------------- | ----------- |
-| 2012-08-10      | 0.2.1       |
+| 2012-08-10      | 0.2.2       |
 | 2011-12-05      | 0.1.3       |
 
 
 ## Caveats
 
 *  `ConsumedCapacityUnits` value will be 1 always.
-*  The response size is not constrained by 1mb limit. So operation
-   like `BatchGetItem` will return all items irrespective of the
-   response size
 
 ## Usage
 
