@@ -67,7 +67,7 @@ end
 
 FakeDynamo::Storage.instance.load_aof
 FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind]) do |server|
-  server.config[:AccessLog] = []
+  server.config[:AccessLog] = [] if server.config.respond_to?('[]=')
 end
 
 at_exit {
