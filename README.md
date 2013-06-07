@@ -6,7 +6,7 @@ local hosted, inmemory Amazon DynamoDB emulator.
 
 | Amazon DynamoDB | FakeDynamo  |
 | --------------- | ----------- |
-| 2012-08-10      | 0.2.2       |
+| 2012-08-10      | 0.2.3       |
 | 2011-12-05      | 0.1.3       |
 
 
