@@ -18,8 +18,8 @@ module FakeDynamo
       {'TableName' => 'User',
         'Item' => { 'id' => { 'S' => (i % 100).to_s },
           'name' => { 'S' => "╩tr¥in" },
-          'binary' => { 'B' => Base64.encode64("binary") },
-          'binary' => { 'BS' => [Base64.encode64("binary")] }}
+          'binary' => { 'B' => Base64.strict_encode64("binary") },
+          'binary' => { 'BS' => [Base64.strict_encode64("binary")] }}
       }
     end
 

@@ -31,8 +31,8 @@ module FakeDynamo
           'AttributeName1' => { 'S' => "test" },
           'AttributeName2' => { 'N' => '11' },
           'AttributeName3' => { 'S' => "another" },
-          'binary' => { 'B' => Base64.encode64("binary") },
-          'binary_set' => { 'BS' => [Base64.encode64("binary")] }
+          'binary' => { 'B' => Base64.strict_encode64("binary") },
+          'binary_set' => { 'BS' => [Base64.strict_encode64("binary")] }
         },
         'ReturnConsumedCapacity' => 'TOTAL'
       }

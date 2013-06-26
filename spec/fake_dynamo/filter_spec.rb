@@ -10,7 +10,7 @@ module FakeDynamo
   describe Filter do
 
     def encode(bytes)
-      Base64.encode64(bytes.pack('c*'))
+      Base64.strict_encode64(bytes.pack('c*'))
     end
 
     subject { FilterTest.new }

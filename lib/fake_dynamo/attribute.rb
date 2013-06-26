@@ -39,8 +39,8 @@ module FakeDynamo
 
     def decode(value)
       case @type
-      when 'B' then Base64.decode64(value)
-      when 'BS' then value.map { |v| Base64.decode64(v) }
+      when 'B' then Base64.strict_decode64(value)
+      when 'BS' then value.map { |v| Base64.strict_decode64(v) }
       when 'N' then Num.new(value)
       when 'NS' then value.map { |v| Num.new(v) }
       else value
@@ -49,8 +49,8 @@ module FakeDynamo
 
     def encode(value)
       case @type
-      when 'B' then Base64.encode64(value)
-      when 'BS' then value.map { |v| Base64.encode64(v) }
+      when 'B' then Base64.strict_encode64(value)
+      when 'BS' then value.map { |v| Base64.strict_encode64(v) }
       when 'N' then value.to_s
       when 'NS' then value.map(&:to_s)
       else value
