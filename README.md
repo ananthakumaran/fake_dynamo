@@ -19,7 +19,7 @@ local hosted, inmemory Amazon DynamoDB emulator.
 __requires ruby >= 1.9__
 
 ````
-gem install fake_dynamo --version 0.2.0
+gem install fake_dynamo --version 0.2.3
 
 fake_dynamo --port 4567
 ````
