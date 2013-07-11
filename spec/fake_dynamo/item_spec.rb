@@ -50,6 +50,12 @@ module FakeDynamo
         subject.delete('friends', { "NS" => ["2", "4"]})
         subject.attributes['friends'].value.should == [Num.new("1")]
       end
+
+      it "should remove empty sets" do
+        subject.attributes['friends'] = Attribute.new('friends', ["1", "2"], "NS")
+        subject.delete('friends', { "NS" => ["1", "2"]})
+        subject.attributes['friends'].should be_nil
+      end
     end
 
     context "#put" do
