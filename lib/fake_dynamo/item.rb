@@ -80,6 +80,9 @@ module FakeDynamo
         end
         attribute = Attribute.from_hash(name, value)
         old_attribute.value -= attribute.value
+        if old_attribute.value.empty?
+          attributes.delete(name)
+        end
       end
     end
 
