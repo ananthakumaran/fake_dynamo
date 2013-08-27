@@ -53,6 +53,14 @@ AWS.config(:use_ssl => false,
                     region:          "xxx"});
 ````
 
+* [aws-sdk-java](https://github.com/aws/aws-sdk-java) (AWS SDK for Java)
+
+````java
+AWSCredentials credentials = new BasicAWSCredentials("xxx", "xxx");
+AmazonDynamoDB client = new AmazonDynamoDBClient(credentials);
+client.setEndpoint("http://localhost:4567");
+````
+
 __please open a pull request with your configuration if you are using
 fake_dynamo with clients other than the ones mentioned above__.
 
