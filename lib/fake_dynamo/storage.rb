@@ -4,11 +4,9 @@ require 'tempfile'
 module FakeDynamo
   class Storage
 
-    attr_accessor :compacted, :loaded
+    attr_accessor :compacted, :loaded, :db_path
 
     class << self
-      attr_accessor :db_path
-
       def instance
         @storage ||= Storage.new
       end
@@ -16,10 +14,6 @@ module FakeDynamo
 
     def log
       Logger.log
-    end
-
-    def initialize
-      init_db
     end
 
     def write_commands
@@ -30,14 +24,17 @@ module FakeDynamo
       write_commands.include?(command)
     end
 
-    def db_path
-      self.class.db_path
-    end
+    def init_db(path)
+      @db_path = path
 
-    def init_db
-      return if File.exists? db_path
+      return if File.exists?(db_path) && File.writable?(db_path)
+
       FileUtils.mkdir_p(File.dirname(db_path))
       FileUtils.touch(db_path)
+    rescue Errno::EACCES
+      puts "Cannot create or access db file at #{db_path}"
+      puts "Make sure you have write access to #{db_path}"
+      exit(1)
     end
 
     def delete_db

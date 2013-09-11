@@ -57,7 +57,7 @@ if (pid = options[:pid])
   File.open(pid, 'w') { |f| f.write(Process.pid) }
 end
 
-FakeDynamo::Storage.db_path = options[:db]
+FakeDynamo::Storage.instance.init_db(options[:db])
 FakeDynamo::Logger.setup(options[:log_level])
 
 if options[:compact]

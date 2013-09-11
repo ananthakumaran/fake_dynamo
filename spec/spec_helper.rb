@@ -17,11 +17,10 @@ end
 module FakeDynamo
   class Storage
     def initialize
+      init_db('/tmp/test_db.fdb')
       delete_db
-      init_db
     end
   end
 end
 
-FakeDynamo::Storage.db_path = '/tmp/test_db.fdb'
 FakeDynamo::Logger.setup(:debug)
