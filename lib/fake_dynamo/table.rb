@@ -325,7 +325,7 @@ module FakeDynamo
       end
 
       if attrs = attributes_to_get(data, index)
-        if (attrs - projected_attributes(index)).empty?
+        if (attrs - (projected_attributes(index) || [])).empty?
           return projected_attributes(index)
         end
       end
