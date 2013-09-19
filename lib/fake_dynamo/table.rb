@@ -318,14 +318,14 @@ module FakeDynamo
     end
 
     def sack_attributes(data, index)
-      return unless index
+      return if !index || index.projection.type == 'ALL'
 
       if data['Select'] == 'COUNT'
         return projected_attributes(index)
       end
 
       if attrs = attributes_to_get(data, index)
-        if (attrs - (projected_attributes(index) || [])).empty?
+        if (attrs - (projected_attributes(index))).empty?
           return projected_attributes(index)
         end
       end
