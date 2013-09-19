@@ -1065,6 +1065,7 @@
             - :required
             - :enum: [EQ, LE, LT, GE, GT, BEGINS_WITH, BETWEEN]
     - :within: !ruby/range 1..2
+    - :required
     ScanIndexForward:
     - :boolean
     ExclusiveStartKey:
