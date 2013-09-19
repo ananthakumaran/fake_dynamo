@@ -636,6 +636,12 @@ module FakeDynamo
         result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'},
                                         'AttributeName2' => { 'N' => '3' })
       end
+
+      it 'should handle attributes_to_get within index' do
+        index_query['AttributesToGet'] = ['AttributeName1']
+        result = subject.query(index_query)
+        result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'})
+      end
     end
 
     context '#scan' do
