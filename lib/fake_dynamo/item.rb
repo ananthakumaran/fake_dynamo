@@ -4,7 +4,7 @@ module FakeDynamo
     attr_accessor :key, :attributes
 
     class << self
-      def from_data(data, key_schema)
+      def from_data(data, key_schema, attribute_definitions)
         item = Item.new
         item.key = Key.from_schema(data, key_schema)
 
@@ -14,6 +14,8 @@ module FakeDynamo
             item.attributes[name] = Attribute.from_hash(name, value)
           end
         end
+
+        item.validate_attribute_types(attribute_definitions)
         item
       end
 
@@ -114,6 +116,14 @@ module FakeDynamo
             'SizeEstimateRangeGB' => [ 0, 1 ] } }
       else
         {}
+      end
+    end
+
+    def validate_attribute_types(definitions)
+      definitions.each do |definition|
+        if attr = self[definition.name]
+          validate_type(attr.as_hash[definition.name], definition)
+        end
       end
     end
   end

@@ -106,7 +106,7 @@ module FakeDynamo
     end
 
     def put_item(data)
-      item = Item.from_data(data['Item'], key_schema)
+      item = Item.from_data(data['Item'], key_schema, attribute_definitions)
       old_item = @items[item.key]
       check_conditions(old_item, data['Expected'])
       @items[item.key] = item
@@ -115,7 +115,7 @@ module FakeDynamo
     end
 
     def batch_put_request(data)
-      Item.from_data(data['Item'], key_schema)
+      Item.from_data(data['Item'], key_schema, attribute_definitions)
     end
 
     def batch_put(item)
@@ -193,6 +193,8 @@ module FakeDynamo
           attribute_updates.each do |name, update_data|
             item.update(name, update_data)
           end
+
+          item.validate_attribute_types(attribute_definitions)
         end
       rescue => e
         if item_created

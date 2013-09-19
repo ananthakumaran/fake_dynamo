@@ -30,7 +30,7 @@ module FakeDynamo
         'Item' => {
           'AttributeName1' => { 'S' => "test" },
           'AttributeName2' => { 'N' => '11' },
-          'AttributeName3' => { 'S' => "another" },
+          'AttributeName3' => { 'N' => "14" },
           'binary' => { 'B' => Base64.strict_encode64("binary") },
           'binary_set' => { 'BS' => [Base64.strict_encode64("binary")] }
         },
@@ -146,6 +146,17 @@ module FakeDynamo
         end.to raise_error(ValidationException, /mismatch/i)
       end
 
+      it 'should fail on index type mismatch' do
+        expect do
+          subject.put_item({ 'TableName' => 'Table1',
+              'Item' => {
+                'AttributeName1' => { 'S' => "test" },
+                'AttributeName2' => { 'N' => '11' },
+                'AttributeName3' => { 'S' => 'another' },
+              }})
+        end.to raise_error(ValidationException, /mismatch/i)
+      end
+
       it 'should fail if the attribute value contains empty string' do
         expect do
           subject.put_item({ 'TableName' => 'Table1',
@@ -204,9 +215,9 @@ module FakeDynamo
           [[{}, /set to null/],
            [{'Exists' => true}, /set to true/],
            [{'Exists' => false}],
-           [{'Value' => { 'S' => 'xxx' } }],
-           [{'Value' => { 'S' => 'xxx' }, 'Exists' => true}],
-           [{'Value' => { 'S' => 'xxx' }, 'Exists' => false}, /cannot expect/i]].each do |value, message|
+           [{'Value' => { 'N' => '15' } }],
+           [{'Value' => { 'N' => '15' }, 'Exists' => true}],
+           [{'Value' => { 'N' => '15' }, 'Exists' => false}, /cannot expect/i]].each do |value, message|
 
             op = lambda {
               subject.put_item(item.merge({'Expected' => { 'AttributeName3' => value }}))
@@ -221,14 +232,14 @@ module FakeDynamo
         end
 
         it 'should give default response' do
-          item['Item']['AttributeName3'] = { 'S' => "new" }
+          item['Item']['AttributeName3'] = { 'N' => "17" }
           subject.put_item(item).should include(consumed_capacity)
         end
 
         it 'should send old item' do
           old_item = Utils.deep_copy(item)
           new_item = Utils.deep_copy(item)
-          new_item['Item']['AttributeName3'] = { 'S' => "new" }
+          new_item['Item']['AttributeName3'] = { 'N' => "17" }
           new_item.merge!({'ReturnValues' => 'ALL_OLD'})
           subject.put_item(new_item)['Attributes'].should == old_item['Item']
         end
@@ -261,7 +272,7 @@ module FakeDynamo
                                       'AttributesToGet' => ['AttributeName3', 'xxx'],
                                       'ReturnConsumedCapacity' => 'TOTAL'
                                     })
-        response.should eq({ 'Item' => { 'AttributeName3' => { 'S' => 'another'}}}
+        response.should eq({ 'Item' => { 'AttributeName3' => { 'N' => '14'}}}
             .merge(consumed_capacity))
       end
     end
@@ -293,13 +304,13 @@ module FakeDynamo
 
         response = subject.delete_item(key.merge({'Expected' =>
                                                    {'AttributeName3' =>
-                                                     {'Value' => { 'S' => 'another'}}}}))
+                                                     {'Value' => { 'N' => '14'}}}}))
         response.should eq(consumed_capacity)
 
         expect do
           subject.delete_item(key.merge({'Expected' =>
                                           {'AttributeName3' =>
-                                            {'Value' => { 'S' => 'another'}}}}))
+                                            {'Value' => { 'N' => '14'}}}}))
         end.to raise_error(ConditionalCheckFailedException)
       end
 
@@ -317,7 +328,7 @@ module FakeDynamo
       end
 
       let(:put) do
-        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'S' => 'updated' },
+        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'N' => '18' },
             'Action' => 'PUT'}}}
       end
 
@@ -348,13 +359,20 @@ module FakeDynamo
         end.to raise_error(ConditionalCheckFailedException)
       end
 
+      it "should check index types" do
+        expect do
+          put['AttributeUpdates']['AttributeName3']['Value'] = {'S' => 'another'}
+          subject.update_item(key.merge(put))
+        end.to raise_error(ValidationException, /mismatch/i)
+      end
+
       it "should create new item if the key doesn't exist" do
         key['Key']['AttributeName1']['S'] = 'new'
         subject.update_item(key.merge(put))
         subject.get_item(key).should include( "Item"=>
                                               {"AttributeName1"=>{"S"=>"new"},
                                                 "AttributeName2"=>{"N"=>"11"},
-                                                "AttributeName3"=>{"S"=>"updated"}})
+                                                "AttributeName3"=>{"N"=>"18"}})
       end
 
       it "shouldn't create a new item if key doesn't exist and action is delete" do
@@ -365,13 +383,13 @@ module FakeDynamo
 
       it "should handle return values" do
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'updated'}}})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '18'}}})
       end
     end
 
     context '#return_values' do
       let(:put) do
-        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'S' => 'updated' },
+        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'N' => '19' },
               'Action' => 'PUT'}}}
       end
 
@@ -388,13 +406,13 @@ module FakeDynamo
       it "should return update old value" do
         subject.put_item(item)
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_OLD'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'another'}}})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '14'}}})
       end
 
       it "should return update new value" do
         subject.put_item(item)
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'S' => 'updated'}}})
+        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '19'}}})
       end
     end
 
