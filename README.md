@@ -6,7 +6,7 @@ local hosted, inmemory Amazon DynamoDB emulator.
 
 | Amazon DynamoDB API version | FakeDynamo gem version|
 | --------------------------- | ----------------------|
-| [2012-08-10][v2]            | 0.2.4                 |
+| [2012-08-10][v2]            | 0.2.5                 |
 | [2011-12-05][v1]            | 0.1.3                 |
 
 
@@ -19,7 +19,7 @@ local hosted, inmemory Amazon DynamoDB emulator.
 __requires ruby >= 1.9__
 
 ````
-gem install fake_dynamo --version 0.2.3
+gem install fake_dynamo --version 0.2.5
 
 fake_dynamo --port 4567
 ````
