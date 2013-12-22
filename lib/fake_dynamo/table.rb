@@ -79,10 +79,37 @@ module FakeDynamo
       description
     end
 
-    def update(read_capacity_units, write_capacity_units)
-      update_throughput(read_capacity_units, write_capacity_units)
+    def update(data)
+      validate_table_update(data)
+      gsi_updates = data['GlobalSecondaryIndexUpdates']
+      gsi_indexes = []
+
+      if gsi_updates
+        gsi_updates.each do |gsi_update|
+          update_data = gsi_update['Update']
+          gsi_index = find_global_secondary_index(update_data['IndexName'])
+          gsi_indexes << gsi_index
+          raise ResourceNotFoundException, "Index #{update_data['IndexName']} for table #{name}" unless gsi_index
+        end
+      end
+
+      gsi_indexes.each(&:updating)
       response = description
       response['TableDescription']['TableStatus'] = 'UPDATING'
+      gsi_indexes.each(&:activate)
+
+      if data['ProvisionedThroughput']
+        update_throughput(data['ProvisionedThroughput']['ReadCapacityUnits'], data['ProvisionedThroughput']['WriteCapacityUnits'])
+      end
+
+      if gsi_updates
+        gsi_updates.each do |gsi_update|
+          update_data = gsi_update['Update']
+          gsi_index = find_global_secondary_index(update_data['IndexName'])
+          gsi_index.update_throughput(update_data['ProvisionedThroughput']['ReadCapacityUnits'], update_data['ProvisionedThroughput']['WriteCapacityUnits'])
+        end
+      end
+
       response
     end
 
@@ -523,6 +550,12 @@ module FakeDynamo
             raise ValidationException, "Cannot expect an attribute to have a specified value while expecting it to not exist"
           end
         end
+      end
+    end
+
+    def find_global_secondary_index(name)
+      if @global_secondary_indexes
+        @global_secondary_indexes.find { |i| i.name == name }
       end
     end
 

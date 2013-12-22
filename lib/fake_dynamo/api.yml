@@ -1506,7 +1506,26 @@
         WriteCapacityUnits:
         - :long
         - :required
-    - :required
+    GlobalSecondaryIndexUpdates:
+    - :list:
+      - :structure:
+          Update:
+          - :structure:
+              IndexName:
+              - :string
+              - :pattern: !ruby/regexp /[a-zA-Z0-9_.-]+/
+              - :within: !ruby/range 3..255
+              - :required
+              ProvisionedThroughput:
+              - :structure:
+                  ReadCapacityUnits:
+                  - :long
+                  - :required
+                  WriteCapacityUnits:
+                  - :long
+                  - :required
+              - :required
+          - :required
   :outputs:
     TableDescription:
       :sym: :table_description

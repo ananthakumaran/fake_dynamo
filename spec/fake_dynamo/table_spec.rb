@@ -28,9 +28,9 @@ module FakeDynamo
             "Projection" => {
               "ProjectionType" => "ALL"
             },
-            "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+            "ProvisionedThroughput" => {"ReadCapacityUnits" => 5 ,"WriteCapacityUnits" => 10}
           }],
-        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5 ,"WriteCapacityUnits" => 10}
       }
     end
 
@@ -66,7 +66,10 @@ module FakeDynamo
     context '#update' do
       subject do
         table = Table.new(data)
-        table.update(10, 15)
+        table.update({ "ProvisionedThroughput" => {
+              "ReadCapacityUnits" => 10,
+              "WriteCapacityUnits" => 15
+            }})
         table
       end
 
@@ -74,6 +77,32 @@ module FakeDynamo
       its(:write_capacity_units) { should == 15 }
       its(:last_increased_time) { should be_a_kind_of(Integer) }
       its(:last_decreased_time) { should be_nil }
+    end
+
+    let(:gsi_update) do
+      { "TableName" => "Table1",
+        "GlobalSecondaryIndexUpdates" =>
+        [{"Update" => {
+              "IndexName" => "age_score",
+              "ProvisionedThroughput" => {
+                "ReadCapacityUnits" => 100,
+                "WriteCapacityUnits" => 15 }
+            }
+          }
+        ]
+      }
+    end
+
+    context '#update with gsi' do
+      subject do
+        table = Table.new(data)
+        table.update(gsi_update)
+        table
+      end
+
+      it 'should update global index' do
+        subject.find_global_secondary_index('age_score').read_capacity_units.should eq(100)
+      end
     end
 
     context '#put_item' do

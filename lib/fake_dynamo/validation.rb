@@ -212,5 +212,11 @@ module FakeDynamo
         raise ValidationException, "Query condition missed key schema element #{schema.range_key.name}"
       end
     end
+
+    def validate_table_update(data)
+      if !data['GlobalSecondaryIndexUpdates'] && !data['ProvisionedThroughput']
+        raise ValidationException, "At least one of ProvisionedThroughput or GlobalSecondaryIndexUpdates is required"
+      end
+    end
   end
 end

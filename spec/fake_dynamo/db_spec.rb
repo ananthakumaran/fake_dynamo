@@ -231,9 +231,38 @@ module FakeDynamo
         response['TableDescription'].should include({'TableStatus' => 'UPDATING'})
       end
 
+      it 'should update global index throughput' do
+        subject.create_table(user_table_a)
+        response = subject.process('UpdateTable', {'TableName' => 'User',
+            "GlobalSecondaryIndexUpdates" => [{"Update" => {
+                  "IndexName" => "age_name",
+                  "ProvisionedThroughput" => {
+                    "ReadCapacityUnits" => 10,
+                    "WriteCapacityUnits" => 15
+                  }
+                }}]
+          })
+        response['TableDescription'].should include({'TableStatus' => 'UPDATING'})
+      end
+
       it 'should handle validation' do
         subject.create_table(data)
-        expect { subject.process('UpdateTable', {'TableName' => 'Table1'}) }.to raise_error(ValidationException, /null/)
+        expect { subject.process('UpdateTable', {'TableName' => 'Table1'}) }.to raise_error(ValidationException, /At least one/)
+      end
+
+      it 'should validate index name' do
+        subject.create_table(user_table_a)
+        expect do
+          subject.process('UpdateTable', {'TableName' => 'User',
+              "GlobalSecondaryIndexUpdates" => [{"Update" => {
+                    "IndexName" => "xxx",
+                    "ProvisionedThroughput" => {
+                      "ReadCapacityUnits" => 10,
+                      "WriteCapacityUnits" => 15
+                    }
+                  }}]
+            })
+        end.to raise_error(ResourceNotFoundException, /index/i)
       end
     end
 

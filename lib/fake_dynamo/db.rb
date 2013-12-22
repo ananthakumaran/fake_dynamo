@@ -73,7 +73,7 @@ module FakeDynamo
 
     def update_table(data)
       table = find_table(data['TableName'])
-      table.update(data['ProvisionedThroughput']['ReadCapacityUnits'], data['ProvisionedThroughput']['WriteCapacityUnits'])
+      table.update(data)
     end
 
     def self.delegate_to_table(*methods)

@@ -25,6 +25,10 @@ module FakeDynamo
       @status = 'ACTIVE'
     end
 
+    def updating
+      @status = 'UPDATING'
+    end
+
     def description
       { 'IndexName' => name,
         'IndexSizeBytes' => 0,
