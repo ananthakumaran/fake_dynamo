@@ -19,3 +19,5 @@ bin/node_modules/*
 bin/*.json
 bin/reverse_dynamo
 bin/test_binary
+.ruby-gemset
+.ruby-version
