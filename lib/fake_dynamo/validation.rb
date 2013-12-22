@@ -119,7 +119,7 @@ module FakeDynamo
     end
 
     def api_config_path
-      File.join File.expand_path(File.dirname(__FILE__)), 'api_2012-08-10.yml'
+      File.join File.expand_path(File.dirname(__FILE__)), 'api.yml'
     end
 
     def validate_type(value, attribute)
