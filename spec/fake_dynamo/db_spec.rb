@@ -6,33 +6,33 @@ module FakeDynamo
       {
         "TableName" => "Table1",
         "AttributeDefinitions" =>
-        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
-         {"AttributeName" => "AttributeName2","AttributeType" => "N"}],
+        [{"AttributeName" => "name", "AttributeType" => "S"},
+         {"AttributeName" => "age", "AttributeType" => "N"}],
         "KeySchema" =>
-        [{"AttributeName" => "AttributeName1","KeyType" => "HASH"},
-         {"AttributeName" => "AttributeName2","KeyType" => "RANGE"}],
-        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+        [{"AttributeName" => "name", "KeyType" => "HASH"},
+         {"AttributeName" => "age", "KeyType" => "RANGE"}],
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5, "WriteCapacityUnits" => 10}
       }
     end
 
     let(:user_table) do
       {"TableName" => "User",
         "AttributeDefinitions" =>
-        [{"AttributeName" => "id","AttributeType" => "S"}],
+        [{"AttributeName" => "id", "AttributeType" => "S"}],
         "KeySchema" =>
-        [{"AttributeName" => "id","KeyType" => "HASH"}],
-        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+        [{"AttributeName" => "id", "KeyType" => "HASH"}],
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5, "WriteCapacityUnits" => 10}
       }
     end
 
     let(:user_table_a) do
       {"TableName" => "User",
         "AttributeDefinitions" =>
-        [{"AttributeName" => "id","AttributeType" => "S"},
-         {"AttributeName" => "age","AttributeType" => "S"},
-         {"AttributeName" => "name","AttributeType" => "S"}],
+        [{"AttributeName" => "id", "AttributeType" => "S"},
+         {"AttributeName" => "age", "AttributeType" => "S"},
+         {"AttributeName" => "name", "AttributeType" => "S"}],
         "KeySchema" =>
-        [{"AttributeName" => "id","KeyType" => "HASH"},
+        [{"AttributeName" => "id", "KeyType" => "HASH"},
          {"AttributeName" => "age", "KeyType" => "RANGE"}],
         "LocalSecondaryIndexes" =>
         [{"IndexName" => "age",
@@ -43,8 +43,19 @@ module FakeDynamo
              "ProjectionType" => "INCLUDE",
              "NonKeyAttributes" => ["name", "gender"]
            }
-         }],
-        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
+          }],
+        "GlobalSecondaryIndexes" =>
+        [{"IndexName" => "age_name",
+            "KeySchema" =>
+            [{"AttributeName" => "age", "KeyType" => "HASH"},
+              {"AttributeName" => "name", "KeyType" => "RANGE"}],
+            "Projection" => {
+              "ProjectionType" => "INCLUDE",
+              "NonKeyAttributes" => ["name", "gender"]
+            },
+            "ProvisionedThroughput" => {"ReadCapacityUnits" => 5, "WriteCapacityUnits" => 10}
+          }],
+        "ProvisionedThroughput" => {"ReadCapacityUnits" => 5, "WriteCapacityUnits" => 10}
       }
     end
 
@@ -59,7 +70,7 @@ module FakeDynamo
       end
 
       it 'should fail on extra attribute' do
-        user_table_a['AttributeDefinitions'] << {"AttributeName" => "gender","AttributeType" => "S"}
+        user_table_a['AttributeDefinitions'] << {"AttributeName" => "gender", "AttributeType" => "S"}
         expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /some attributedefinitions.*not.*used/i)
       end
 
@@ -82,7 +93,7 @@ module FakeDynamo
         end
 
         it 'should fail on duplicate index names' do
-          duplicate = lsi.clone()
+          duplicate = lsi.clone
           user_table_a['LocalSecondaryIndexes'] << duplicate
           expect { subject.create_table(user_table_a) }.to raise_error(ValidationException, /duplicate index/i)
         end
@@ -106,6 +117,36 @@ module FakeDynamo
           end
         end
       end
+
+      context 'GlobalSecondaryIndex' do
+        let(:gsi) { user_table_a['GlobalSecondaryIndexes'][0] }
+
+        it 'should fail on if IndexName is missing' do
+          gsi.delete('IndexName')
+          expect { subject.process('CreateTable', user_table_a) }.to raise_error(ValidationException, /IndexName.*not be null/)
+        end
+
+        it 'should be ok if range key is missing' do
+          gsi['KeySchema'].delete_at(1)
+          subject.process('CreateTable', user_table_a).should_not be_nil
+        end
+
+        it 'should fail on duplicate index names' do
+          duplicate = gsi.clone
+          user_table_a['GlobalSecondaryIndexes'] << duplicate
+          expect { subject.process('CreateTable', user_table_a) }.to raise_error(ValidationException, /duplicate index/i)
+        end
+
+        it 'should not have share index name with local secondary indexes' do
+          gsi['IndexName'] = user_table_a['LocalSecondaryIndexes'][0]['IndexName']
+          expect { subject.process('CreateTable', user_table_a) }.to raise_error(ValidationException, /duplicate index/i)
+        end
+
+        it 'should not fail on different hash key' do
+          gsi['KeySchema'][0]['AttributeName'] = 'age'
+          subject.process('CreateTable', user_table_a).should_not be_nil
+        end
+      end
     end
 
     it 'should fail on unknown operation' do
@@ -114,11 +155,11 @@ module FakeDynamo
 
     context 'DescribeTable' do
       it 'should describe table' do
-        table = subject.create_table(data)
+        subject.create_table(data)
         description = subject.describe_table({'TableName' => 'Table1'})
         description['Table'].should include({
-          "ItemCount"=>0,
-          "TableSizeBytes"=>0})
+          "ItemCount" => 0,
+          "TableSizeBytes" => 0})
       end
 
       it 'should fail on unavailable table' do
@@ -155,13 +196,13 @@ module FakeDynamo
 
       it "should list all table" do
         result = subject.list_tables({})
-        result.should eq({"TableNames"=>["Table1", "Table2", "Table3", "Table4", "Table5"]})
+        result.should eq({"TableNames" => ["Table1", "Table2", "Table3", "Table4", "Table5"]})
       end
 
       it 'should handle limit and exclusive_start_table_name' do
         result = subject.list_tables({'Limit' => 3,
                                        'ExclusiveStartTableName' => 'Table1'})
-        result.should eq({'TableNames'=>["Table2", "Table3", "Table4"],
+        result.should eq({'TableNames' => ["Table2", "Table3", "Table4"],
                            'LastEvaluatedTableName' => "Table4"})
 
         result = subject.list_tables({'Limit' => 3,
@@ -169,7 +210,7 @@ module FakeDynamo
         result.should eq({'TableNames' => ['Table3', 'Table4', 'Table5']})
 
         result = subject.list_tables({'ExclusiveStartTableName' => 'blah'})
-        result.should eq({"TableNames"=>["Table1", "Table2", "Table3", "Table4", "Table5"]})
+        result.should eq({"TableNames" => ["Table1", "Table2", "Table3", "Table4", "Table5"]})
       end
 
       it 'should validate payload' do
@@ -206,8 +247,8 @@ module FakeDynamo
       let(:item) do
         { 'TableName' => 'Table1',
           'Item' => {
-            'AttributeName1' => { 'S' => "test" },
-            'AttributeName2' => { 'N' => '11' },
+            'name' => { 'S' => "test" },
+            'age' => { 'N' => '11' },
             'AttributeName3' => { 'S' => "another" }
           }}
       end
@@ -217,22 +258,22 @@ module FakeDynamo
         subject.process('GetItem', {
                           'TableName' => 'Table1',
                           'Key' => {
-                            'AttributeName1' => { 'S' => 'test' },
-                            'AttributeName2' => { 'N' => '11' }
+                            'name' => { 'S' => 'test' },
+                            'age' => { 'N' => '11' }
                           },
                           'AttributesToGet' => ['AttributeName3']
                         })
         subject.process('DeleteItem', {
                           'TableName' => 'Table1',
                           'Key' => {
-                            'AttributeName1' => { 'S' => 'test' },
-                            'AttributeName2' => { 'N' => '11' }
+                            'name' => { 'S' => 'test' },
+                            'age' => { 'N' => '11' }
                           }})
         subject.process('UpdateItem', {
                           'TableName' => 'Table1',
                           'Key' => {
-                            'AttributeName1' => { 'S' => 'test' },
-                            'AttributeName2' => { 'N' => '11' }
+                            'name' => { 'S' => 'test' },
+                            'age' => { 'N' => '11' }
                           },
                           'AttributeUpdates' =>
                           {'AttributeName3' =>
@@ -247,11 +288,11 @@ module FakeDynamo
                           'Limit' => 5,
                           'Count' => true,
                           'KeyConditions' => {
-                            'AttributeName1' => {
+                            'name' => {
                               'AttributeValueList' => [{'S' => 'att1'}],
                               'ComparisonOperator' => 'EQ'
                             },
-                            'AttributeName2' => {
+                            'age' => {
                               'AttributeValueList' => [{'N' => '1'}],
                               'ComparisonOperator' => 'GT'
                             }
@@ -269,8 +310,8 @@ module FakeDynamo
 
         db.put_item({ 'TableName' => 'Table1',
                       'Item' => {
-                        'AttributeName1' => { 'S' => "test" },
-                        'AttributeName2' => { 'N' => '11' },
+                        'name' => { 'S' => "test" },
+                        'age' => { 'N' => '11' },
                         'AttributeName3' => { 'S' => "another" }
                       }})
 
@@ -284,9 +325,9 @@ module FakeDynamo
       end
 
       it 'should validate payload' do
-        expect {
+        expect do
           subject.process('BatchGetItem', {})
-        }.to raise_error(FakeDynamo::ValidationException)
+        end.to raise_error(FakeDynamo::ValidationException)
       end
 
       it 'should return unprocessed keys if the response is more than 1 mb' do
@@ -299,7 +340,7 @@ module FakeDynamo
                 'payload' => { 'S' => ('x' * 50 * 1024) }}})
           keys << { 'id' => { 'S' => i.to_s } }
         end
-        response = subject.process('BatchGetItem', request);
+        response = subject.process('BatchGetItem', request)
         response['UnprocessedKeys']['User']['Keys'].should_not be_empty
       end
 
@@ -311,19 +352,19 @@ module FakeDynamo
                                                     { 'id' => { 'S' => '2' }}]
                                        },
                                        'Table1' => {
-                                         'Keys' => [{'AttributeName1' => { 'S' => 'test' },
-                                                      'AttributeName2' => { 'N' => '11' }}],
-                                         'AttributesToGet' => ['AttributeName1', 'AttributeName2']
+                                         'Keys' => [{'name' => { 'S' => 'test' },
+                                                      'age' => { 'N' => '11' }}],
+                                         'AttributesToGet' => ['name', 'age']
                                        }
                                      }})
 
-        response.should eq({"Responses"=>
-                             {"User"=>
-                               [{"id"=>{"S"=>"1"}}, {"id"=>{"S"=>"2"}}],
-                               "Table1"=>
-                               [{"AttributeName1"=>{"S"=>"test"},
-                                   "AttributeName2"=>{"N"=>"11"}}]},
-                             "UnprocessedKeys"=>{}})
+        response.should eq({"Responses" =>
+                             {"User" =>
+                               [{"id" => {"S" => "1"}}, {"id" => {"S" => "2"}}],
+                               "Table1" =>
+                               [{"name" => {"S" => "test"},
+                                   "age" => {"N" => "11"}}]},
+                             "UnprocessedKeys" => {}})
       end
 
       it 'should handle missing items' do
@@ -335,21 +376,21 @@ module FakeDynamo
                                        }
                                      },
                                      'ReturnConsumedCapacity' => 'TOTAL'})
-        response.should eq({"Responses"=>
-                             {"User"=> [{"id"=>{"S"=>"1"}}]},
-                             "UnprocessedKeys"=>{},
+        response.should eq({"Responses" =>
+                             {"User" => [{"id" => {"S" => "1"}}]},
+                             "UnprocessedKeys" => {},
                              "ConsumedCapacity" => ['CapacityUnits' => 1, 'TableName' => 'User']})
       end
 
       it 'should fail if table not found' do
-        expect {
+        expect do
           subject.process('BatchGetItem', { 'RequestItems' =>
                             {
                               'xxx' => {
-                                'Keys' => [{ 'AttributeName1' => { 'S' => '1' }},
-                                           { 'AttributeName1' => { 'S' => 'asd' }}]}
+                                'Keys' => [{ 'name' => { 'S' => '1' }},
+                                           { 'name' => { 'S' => 'asd' }}]}
                             }})
-        }.to raise_error(FakeDynamo::ResourceNotFoundException)
+        end.to raise_error(FakeDynamo::ResourceNotFoundException)
       end
     end
 
@@ -363,48 +404,48 @@ module FakeDynamo
       let(:consumed_capacity) { {'ConsumedCapacity' => { 'CapacityUnits' => 1, 'TableName' => 'User' }} }
 
       it 'should validate payload' do
-        expect {
+        expect do
           subject.process('BatchWriteItem', {})
-        }.to raise_error(FakeDynamo::ValidationException)
+        end.to raise_error(FakeDynamo::ValidationException)
       end
 
       it 'should fail if table not found' do
-        expect {
+        expect do
           subject.process('BatchWriteItem', {
                             'RequestItems' => {
-                              'xxx' => ['DeleteRequest' => { 'Key' => { 'AttributeName1' => { 'S' => 'ananth' }}}]
+                              'xxx' => ['DeleteRequest' => { 'Key' => { 'name' => { 'S' => 'ananth' }}}]
                             }
                           })
-        }.to raise_error(FakeDynamo::ResourceNotFoundException, /table.*not.*found/i)
+        end.to raise_error(FakeDynamo::ResourceNotFoundException, /table.*not.*found/i)
       end
 
       it 'should fail on conflict items' do
-        expect {
-        subject.process('BatchWriteItem', {
+        expect do
+          subject.process('BatchWriteItem', {
                           'RequestItems' => {
                             'User' => [{ 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => 'ananth' }}}},
                                        { 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => 'ananth' }}}}]
                           }
                         })
-        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+        end.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
 
-        expect {
+        expect do
           subject.process('BatchWriteItem', {
                             'RequestItems' => {
                               'User' => [{ 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => 'ananth' }}}},
                                          {'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
                             }
                           })
-        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+        end.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
 
-        expect {
+        expect do
           subject.process('BatchWriteItem', {
                             'RequestItems' => {
                               'User' => [{'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}},
                                          {'PutRequest' => {'Item' => { 'id' => { 'S' => 'ananth'}}}}]
                             }
                           })
-        }.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
+        end.to raise_error(FakeDynamo::ValidationException, /duplicate/i)
       end
 
       it 'writes/deletes item in the db' do
@@ -441,7 +482,7 @@ module FakeDynamo
       end
 
       it 'fails it the requested operation is more than 25' do
-        expect {
+        expect do
           requests = (1..26).map { |i| { 'DeleteRequest' => { 'Key' => { 'id' => { 'S' => "ananth#{i}" }}}} }
 
           subject.process('BatchWriteItem', {
@@ -450,11 +491,11 @@ module FakeDynamo
                             }
                           })
 
-        }.to raise_error(FakeDynamo::ValidationException, /within.*25/i)
+        end.to raise_error(FakeDynamo::ValidationException, /within.*25/i)
       end
 
       it 'should fail on request size greater than 1 mb' do
-        expect {
+        expect do
 
           keys = { 'SS' => (1..2000).map { |i| 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' + i.to_s } }
 
@@ -466,14 +507,13 @@ module FakeDynamo
                 }}}
           end
 
-
           subject.process('BatchWriteItem', {
                             'RequestItems' => {
                               'User' => requests
                             }
                           })
 
-        }.to raise_error(FakeDynamo::ValidationException, /size.*exceed/i)
+        end.to raise_error(FakeDynamo::ValidationException, /size.*exceed/i)
       end
     end
   end

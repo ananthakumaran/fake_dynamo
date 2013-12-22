@@ -373,6 +373,45 @@
               - :within: !ruby/range 1..20
           - :required
     - :within: !ruby/range 1..5
+    GlobalSecondaryIndexes:
+    - :list:
+      - :structure:
+          IndexName:
+          - :string
+          - :pattern: !ruby/regexp /[a-zA-Z0-9_.-]+/
+          - :within: !ruby/range 3..255
+          - :required
+          KeySchema:
+          - :list:
+            - :structure:
+                AttributeName:
+                - :string
+                - :required
+                KeyType:
+                - :string
+                - :required
+                - :enum: [HASH, RANGE]
+          - :required
+          Projection:
+          - :structure:
+              ProjectionType:
+              - :string
+              - :enum: [ALL, KEYS_ONLY, INCLUDE]
+              NonKeyAttributes:
+              - :list:
+                - :string
+              - :within: !ruby/range 1..20
+          - :required
+          ProvisionedThroughput:
+          - :structure:
+              ReadCapacityUnits:
+              - :long
+              - :required
+              WriteCapacityUnits:
+              - :long
+              - :required
+          - :required
+    - :within: !ruby/range 1..5
     ProvisionedThroughput:
     - :structure:
         ReadCapacityUnits:

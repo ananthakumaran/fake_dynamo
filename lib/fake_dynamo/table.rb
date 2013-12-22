@@ -2,10 +2,10 @@ module FakeDynamo
   class Table
     include Validation
     include Filter
+    include Throughput
 
-    attr_accessor :creation_date_time, :read_capacity_units, :write_capacity_units,
-                  :name, :status, :attribute_definitions, :key_schema, :items, :size_bytes,
-                  :local_secondary_indexes, :last_increased_time, :last_decreased_time
+    attr_accessor :creation_date_time, :name, :status, :attribute_definitions,
+                  :key_schema, :items, :size_bytes, :local_secondary_indexes, :global_secondary_indexes
 
     def initialize(data)
       extract_values(data)
@@ -24,30 +24,21 @@ module FakeDynamo
           'ItemCount' => items.count,
           'TableSizeBytes' => size_bytes
         }.merge(local_secondary_indexes_description)
+          .merge(global_secondary_indexes_description)
       }
-    end
-
-    def throughput_description
-      result = {
-        'NumberOfDecreasesToday' => 0,
-        'ReadCapacityUnits' => read_capacity_units,
-        'WriteCapacityUnits' => write_capacity_units
-      }
-
-      if last_increased_time
-        result['LastIncreaseDateTime'] = @last_increased_time
-      end
-
-      if last_decreased_time
-        result['LastDecreaseDateTime'] = @last_decreased_time
-      end
-
-      result
     end
 
     def local_secondary_indexes_description
       if local_secondary_indexes
         { 'LocalSecondaryIndexes' => local_secondary_indexes.map(&:description) }
+      else
+        {}
+      end
+    end
+
+    def global_secondary_indexes_description
+      if global_secondary_indexes
+        { 'GlobalSecondaryIndexes' => global_secondary_indexes.map(&:description) }
       else
         {}
       end
@@ -86,20 +77,7 @@ module FakeDynamo
     end
 
     def update(read_capacity_units, write_capacity_units)
-      if @read_capacity_units > read_capacity_units
-        @last_decreased_time = Time.now.to_i
-      elsif @read_capacity_units < read_capacity_units
-        @last_increased_time = Time.now.to_i
-      end
-
-      if @write_capacity_units > write_capacity_units
-        @last_decreased_time = Time.now.to_i
-      elsif @write_capacity_units < write_capacity_units
-        @last_increased_time = Time.now.to_i
-      end
-
-      @read_capacity_units, @write_capacity_units = read_capacity_units, write_capacity_units
-
+      update_throughput(read_capacity_units, write_capacity_units)
       response = description
       response['TableDescription']['TableStatus'] = 'UPDATING'
       response
@@ -232,7 +210,7 @@ module FakeDynamo
       hash_attribute = Attribute.from_hash(schema.hash_key.name, hash_condition['AttributeValueList'].first)
       matched_items = get_items_by_hash_key(hash_attribute)
 
-      forward = data.has_key?('ScanIndexForward') ? data['ScanIndexForward'] : true
+      forward = data.key?('ScanIndexForward') ? data['ScanIndexForward'] : true
       if index
         matched_items = drop_till_start_index(matched_items, data['ExclusiveStartKey'], forward, schema)
       else
@@ -267,7 +245,6 @@ module FakeDynamo
       validate_limit(data)
 
       conditions = data['ScanFilter'] || {}
-
 
       if (segment = data['Segment']) && (total_segments = data['TotalSegments'])
         chunk_size = (items.values.size / total_segments.to_f).ceil
@@ -306,7 +283,6 @@ module FakeDynamo
           attributes_to_get = nil # select everything
         end
 
-
         if data['AttributesToGet']
           attributes_to_get = data['AttributesToGet']
         elsif data['Select'] == 'ALL_PROJECTED_ATTRIBUTES'
@@ -314,6 +290,7 @@ module FakeDynamo
         elsif data['Select'] == 'ALL_ATTRIBUTES'
           attributes_to_get = nil
         end
+        attributes_to_get
       else
         false
       end
@@ -321,10 +298,7 @@ module FakeDynamo
 
     def sack_attributes(data, index)
       return if !index || index.projection.type == 'ALL'
-
-      if data['Select'] == 'COUNT'
-        return projected_attributes(index)
-      end
+      return projected_attributes(index) if data['Select'] == 'COUNT'
 
       if attrs = attributes_to_get(data, index)
         if (attrs - (projected_attributes(index))).empty?
@@ -549,8 +523,8 @@ module FakeDynamo
       end
     end
 
-
     private
+
     def init
       @creation_date_time = Time.now.to_i
       @status = 'CREATING'
@@ -561,16 +535,18 @@ module FakeDynamo
     def extract_values(data)
       @name = data['TableName']
       @key_schema = KeySchema.new(data['KeySchema'], data['AttributeDefinitions'])
-      set_local_secondary_indexes(data)
+      set_secondary_indexes(data)
+
       @attribute_definitions = data['AttributeDefinitions'].map(&Attribute.method(:from_data))
       set_throughput(data['ProvisionedThroughput'])
 
       validate_attribute_definitions
     end
 
-    def set_throughput(throughput)
-      @read_capacity_units = throughput['ReadCapacityUnits']
-      @write_capacity_units = throughput['WriteCapacityUnits']
+    def set_secondary_indexes(data)
+      set_local_secondary_indexes(data)
+      set_global_secondary_indexes(data)
+      validate_index_names((@local_secondary_indexes || []) + (@global_secondary_indexes || []))
     end
 
     def set_local_secondary_indexes(data)
@@ -579,7 +555,15 @@ module FakeDynamo
           LocalSecondaryIndex.from_data(index, data['AttributeDefinitions'], @key_schema)
         end
         validate_range_key(key_schema)
-        validate_index_names(@local_secondary_indexes)
+      end
+    end
+
+    def set_global_secondary_indexes(data)
+      if global_indexes_data = data['GlobalSecondaryIndexes']
+        @global_secondary_indexes = global_indexes_data.map do |index|
+          GlobalSecondaryIndex.from_data(index, data['AttributeDefinitions'], @key_schema)
+        end
+        validate_range_key(key_schema)
       end
     end
 
@@ -588,6 +572,10 @@ module FakeDynamo
       used_keys = @key_schema.keys
       if @local_secondary_indexes
         used_keys += @local_secondary_indexes.map(&:key_schema).map(&:keys).flatten
+      end
+
+      if @global_secondary_indexes
+        used_keys += @global_secondary_indexes.map(&:key_schema).map(&:keys).flatten
       end
 
       used_keys.uniq!

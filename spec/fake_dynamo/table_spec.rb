@@ -7,19 +7,28 @@ module FakeDynamo
       {
         "TableName" => "Table1",
         "AttributeDefinitions" =>
-        [{"AttributeName" => "AttributeName1","AttributeType" => "S"},
-          {"AttributeName" => "AttributeName2","AttributeType" => "N"},
-          {"AttributeName" => "AttributeName3","AttributeType" => "N"}],
+        [{"AttributeName" => "name","AttributeType" => "S"},
+          {"AttributeName" => "age","AttributeType" => "N"},
+          {"AttributeName" => "score","AttributeType" => "N"}],
         "KeySchema" =>
-        [{"AttributeName" => "AttributeName1", "KeyType" => "HASH"},
-          {"AttributeName" => "AttributeName2", "KeyType" => "RANGE"}],
+        [{"AttributeName" => "name", "KeyType" => "HASH"},
+          {"AttributeName" => "age", "KeyType" => "RANGE"}],
         "LocalSecondaryIndexes" => [{
             "IndexName" => "one",
-            "KeySchema" => [{"AttributeName" => "AttributeName1", "KeyType" => "HASH"},
-              {"AttributeName" => "AttributeName3", "KeyType" => "RANGE"}],
+            "KeySchema" => [{"AttributeName" => "name", "KeyType" => "HASH"},
+              {"AttributeName" => "score", "KeyType" => "RANGE"}],
             "Projection" => {
               "ProjectionType" => "ALL"
             }
+          }],
+        "GlobalSecondaryIndexes" => [{
+            "IndexName" => "age_score",
+            "KeySchema" => [{"AttributeName" => "age", "KeyType" => "HASH"},
+              {"AttributeName" => "score", "KeyType" => "RANGE"}],
+            "Projection" => {
+              "ProjectionType" => "ALL"
+            },
+            "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
           }],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5,"WriteCapacityUnits" => 10}
       }
@@ -28,9 +37,9 @@ module FakeDynamo
     let(:item) do
       { 'TableName' => 'Table1',
         'Item' => {
-          'AttributeName1' => { 'S' => "test" },
-          'AttributeName2' => { 'N' => '11' },
-          'AttributeName3' => { 'N' => "14" },
+          'name' => { 'S' => "test" },
+          'age' => { 'N' => '11' },
+          'score' => { 'N' => "14" },
           'binary' => { 'B' => Base64.strict_encode64("binary") },
           'binary_set' => { 'BS' => [Base64.strict_encode64("binary")] }
         },
@@ -41,8 +50,8 @@ module FakeDynamo
     let(:key) do
       {'TableName' => 'Table1',
         'Key' => {
-          'AttributeName1' => { 'S' => 'test' },
-          'AttributeName2' => { 'N' => '11' }
+          'name' => { 'S' => 'test' },
+          'age' => { 'N' => '11' }
         },
         'ReturnConsumedCapacity' => 'TOTAL'}
     end
@@ -72,7 +81,7 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                             'AttributeName2' => { 'S' => "test" }
+                             'age' => { 'S' => "test" }
                              }})
         end.to raise_error(ValidationException, /missing.*item/i)
       end
@@ -81,9 +90,9 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => "3" },
-                               'AttributeName3' => { 'NS' => ["1", "3", "3"] }
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => "3" },
+                               'score' => { 'NS' => ["1", "3", "3"] }
                              }})
         end.to raise_error(ValidationException, /duplicate/)
       end
@@ -92,18 +101,18 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => "3" },
-                               'AttributeName3' => { 'NS' => ["1", "3", "one"] }
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => "3" },
+                               'score' => { 'NS' => ["1", "3", "one"] }
                              }})
         end.to raise_error(ValidationException, /numeric/)
 
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => "3" },
-                               'AttributeName3' => { 'N' => "one" }
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => "3" },
+                               'score' => { 'N' => "one" }
                              }})
         end.to raise_error(ValidationException, /numeric/)
       end
@@ -111,19 +120,19 @@ module FakeDynamo
       it 'should handle float values' do
         subject.put_item({ 'TableName' => 'Table1',
                            'Item' => {
-                             'AttributeName1' => { 'S' => "test" },
-                             'AttributeName2' => { 'N' => "3" },
-                             'AttributeName3' => { 'N' => "4.44444" }
+                             'name' => { 'S' => "test" },
+                             'age' => { 'N' => "3" },
+                             'score' => { 'N' => "4.44444" }
                            }})
 
         ['3', '3.0', '3e0', '.3e1', '003'].each do |n|
           response = subject.get_item({'TableName' => 'Table1',
                                         'Key' => {
-                                          'AttributeName1' => { 'S' => 'test' },
-                                          'AttributeName2' => { 'N' => n }
+                                          'name' => { 'S' => 'test' },
+                                          'age' => { 'N' => n }
                                         }})
 
-          response['Item']['AttributeName3'].should eq('N' => '4.44444')
+          response['Item']['score'].should eq('N' => '4.44444')
         end
       end
 
@@ -131,7 +140,7 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" }
+                               'name' => { 'S' => "test" }
                              }})
         end.to raise_error(ValidationException, /missing.*item/i)
       end
@@ -140,8 +149,8 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'N' => "test" },
-                               'AttributeName2' => { 'N' => '11' }
+                               'name' => { 'N' => "test" },
+                               'age' => { 'N' => '11' }
                              }})
         end.to raise_error(ValidationException, /mismatch/i)
       end
@@ -150,9 +159,9 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
               'Item' => {
-                'AttributeName1' => { 'S' => "test" },
-                'AttributeName2' => { 'N' => '11' },
-                'AttributeName3' => { 'S' => 'another' },
+                'name' => { 'S' => "test" },
+                'age' => { 'N' => '11' },
+                'score' => { 'S' => 'another' },
               }})
         end.to raise_error(ValidationException, /mismatch/i)
       end
@@ -161,8 +170,8 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => '11' },
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => '11' },
                                'x' => { 'S' => '' }
                              }})
         end.to raise_error(ValidationException, /empty/i)
@@ -170,8 +179,8 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => '11' },
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => '11' },
                                'x' => { 'SS' => ['x', ''] }
                              }})
         end.to raise_error(ValidationException, /empty/i)
@@ -181,8 +190,8 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => '11' },
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => '11' },
                                '' => { 'SS' => ['x'] }
                              }})
         end.to raise_error(ValidationException, /empty/i)
@@ -192,8 +201,8 @@ module FakeDynamo
         expect do
           subject.put_item({ 'TableName' => 'Table1',
                              'Item' => {
-                               'AttributeName1' => { 'S' => "test" },
-                               'AttributeName2' => { 'N' => '11' },
+                               'name' => { 'S' => "test" },
+                               'age' => { 'N' => '11' },
                                'x' => { 'SS' => [] }
                              }})
         end.to raise_error(ValidationException, /empty/i)
@@ -220,7 +229,7 @@ module FakeDynamo
            [{'Value' => { 'N' => '15' }, 'Exists' => false}, /cannot expect/i]].each do |value, message|
 
             op = lambda {
-              subject.put_item(item.merge({'Expected' => { 'AttributeName3' => value }}))
+              subject.put_item(item.merge({'Expected' => { 'score' => value }}))
             }
 
             if message
@@ -232,14 +241,14 @@ module FakeDynamo
         end
 
         it 'should give default response' do
-          item['Item']['AttributeName3'] = { 'N' => "17" }
+          item['Item']['score'] = { 'N' => "17" }
           subject.put_item(item).should include(consumed_capacity)
         end
 
         it 'should send old item' do
           old_item = Utils.deep_copy(item)
           new_item = Utils.deep_copy(item)
-          new_item['Item']['AttributeName3'] = { 'N' => "17" }
+          new_item['Item']['score'] = { 'N' => "17" }
           new_item.merge!({'ReturnValues' => 'ALL_OLD'})
           subject.put_item(new_item)['Attributes'].should == old_item['Item']
         end
@@ -256,8 +265,8 @@ module FakeDynamo
       it 'should return empty when the key is not found' do
         response = subject.get_item({'TableName' => 'Table1',
                                       'Key' => {
-                                        'AttributeName1' => { 'S' => 'xxx' },
-                                        'AttributeName2' => { 'N' => '11' }
+                                        'name' => { 'S' => 'xxx' },
+                                        'age' => { 'N' => '11' }
                                       }
                                     })
         response.should eq({})
@@ -266,13 +275,13 @@ module FakeDynamo
       it 'should filter attributes' do
         response = subject.get_item({'TableName' => 'Table1',
                                       'Key' => {
-                                        'AttributeName1' => { 'S' => 'test' },
-                                        'AttributeName2' => { 'N' => '11' }
+                                        'name' => { 'S' => 'test' },
+                                        'age' => { 'N' => '11' }
                                       },
-                                      'AttributesToGet' => ['AttributeName3', 'xxx'],
+                                      'AttributesToGet' => ['score', 'xxx'],
                                       'ReturnConsumedCapacity' => 'TOTAL'
                                     })
-        response.should eq({ 'Item' => { 'AttributeName3' => { 'N' => '14'}}}
+        response.should eq({ 'Item' => { 'score' => { 'N' => '14'}}}
             .merge(consumed_capacity))
       end
     end
@@ -299,17 +308,17 @@ module FakeDynamo
       it 'should check conditions' do
         expect do
           subject.delete_item(key.merge({'Expected' =>
-                                          {'AttributeName3' => { 'Exists' => false }}}))
+                                          {'score' => { 'Exists' => false }}}))
         end.to raise_error(ConditionalCheckFailedException)
 
         response = subject.delete_item(key.merge({'Expected' =>
-                                                   {'AttributeName3' =>
+                                                   {'score' =>
                                                      {'Value' => { 'N' => '14'}}}}))
         response.should eq(consumed_capacity)
 
         expect do
           subject.delete_item(key.merge({'Expected' =>
-                                          {'AttributeName3' =>
+                                          {'score' =>
                                             {'Value' => { 'N' => '14'}}}}))
         end.to raise_error(ConditionalCheckFailedException)
       end
@@ -328,12 +337,12 @@ module FakeDynamo
       end
 
       let(:put) do
-        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'N' => '18' },
+        {'AttributeUpdates' => {'score' => { 'Value' => { 'N' => '18' },
             'Action' => 'PUT'}}}
       end
 
       let(:delete) do
-        {'AttributeUpdates' => {'AttributeName3' => {'Action' => 'DELETE'}}}
+        {'AttributeUpdates' => {'score' => {'Action' => 'DELETE'}}}
       end
 
       it "should not partially update item" do
@@ -344,7 +353,7 @@ module FakeDynamo
         subject.get_item(key).should include('Item' => item['Item'])
 
         expect do
-          key['Key']['AttributeName1']['S'] = 'unknown'
+          key['Key']['name']['S'] = 'unknown'
           put['AttributeUpdates'].merge!({ 'xx' => { 'Value' => { 'N' => 'one'}, 'Action' => 'ADD'}})
           subject.update_item(key.merge(put))
         end.to raise_error(ValidationException, /numeric/)
@@ -355,41 +364,41 @@ module FakeDynamo
       it "should check conditions" do
         expect do
           subject.update_item(key.merge({'Expected' =>
-                                          {'AttributeName3' => { 'Exists' => false }}}))
+                                          {'score' => { 'Exists' => false }}}))
         end.to raise_error(ConditionalCheckFailedException)
       end
 
       it "should check index types" do
         expect do
-          put['AttributeUpdates']['AttributeName3']['Value'] = {'S' => 'another'}
+          put['AttributeUpdates']['score']['Value'] = {'S' => 'another'}
           subject.update_item(key.merge(put))
         end.to raise_error(ValidationException, /mismatch/i)
       end
 
       it "should create new item if the key doesn't exist" do
-        key['Key']['AttributeName1']['S'] = 'new'
+        key['Key']['name']['S'] = 'new'
         subject.update_item(key.merge(put))
         subject.get_item(key).should include( "Item"=>
-                                              {"AttributeName1"=>{"S"=>"new"},
-                                                "AttributeName2"=>{"N"=>"11"},
-                                                "AttributeName3"=>{"N"=>"18"}})
+                                              {"name"=>{"S"=>"new"},
+                                                "age"=>{"N"=>"11"},
+                                                "score"=>{"N"=>"18"}})
       end
 
       it "shouldn't create a new item if key doesn't exist and action is delete" do
-        key['Key']['AttributeName1']['S'] = 'new'
+        key['Key']['name']['S'] = 'new'
         subject.update_item(key.merge(delete))
         subject.get_item(key).should eq(consumed_capacity)
       end
 
       it "should handle return values" do
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '18'}}})
+        subject.update_item(data).should include({'Attributes' => { 'score' => { 'N' => '18'}}})
       end
     end
 
     context '#return_values' do
       let(:put) do
-        {'AttributeUpdates' => {'AttributeName3' => { 'Value' => { 'N' => '19' },
+        {'AttributeUpdates' => {'score' => { 'Value' => { 'N' => '19' },
               'Action' => 'PUT'}}}
       end
 
@@ -406,13 +415,13 @@ module FakeDynamo
       it "should return update old value" do
         subject.put_item(item)
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_OLD'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '14'}}})
+        subject.update_item(data).should include({'Attributes' => { 'score' => { 'N' => '14'}}})
       end
 
       it "should return update new value" do
         subject.put_item(item)
         data = key.merge(put).merge({'ReturnValues' => 'UPDATED_NEW'})
-        subject.update_item(data).should include({'Attributes' => { 'AttributeName3' => { 'N' => '19'}}})
+        subject.update_item(data).should include({'Attributes' => { 'score' => { 'N' => '19'}}})
       end
     end
 
@@ -422,9 +431,9 @@ module FakeDynamo
         (1..3).each do |i|
           (15.downto(1)).each do |j|
             next if j.even?
-            item['Item']['AttributeName1']['S'] = "att#{i}"
-            item['Item']['AttributeName2']['N'] = j.to_s
-            item['Item']['AttributeName3'] = {'N' => ((j % 3) + 2).to_s}
+            item['Item']['name']['S'] = "att#{i}"
+            item['Item']['age']['N'] = j.to_s
+            item['Item']['score'] = {'N' => ((j % 3) + 2).to_s}
             t.put_item(item)
           end
         end
@@ -436,11 +445,11 @@ module FakeDynamo
           'TableName' => 'Table1',
           'Limit' => 5,
           'KeyConditions' => {
-            'AttributeName1' => {
+            'name' => {
               'AttributeValueList' => [{'S' => 'att1'}],
               'ComparisonOperator' => 'EQ'
             },
-            'AttributeName2' => {
+            'age' => {
               'AttributeValueList' => [{'N' => '1'}],
               'ComparisonOperator' => 'GT'
             }
@@ -455,11 +464,11 @@ module FakeDynamo
           'Limit' => 5,
           'IndexName' => 'one',
           'KeyConditions' => {
-            'AttributeName1' => {
+            'name' => {
               'AttributeValueList' => [{'S' => 'att1'}],
               'ComparisonOperator' => 'EQ'
             },
-            'AttributeName3' => {
+            'score' => {
               'AttributeValueList' => [{'N' => '1'}],
               'ComparisonOperator' => 'GT'
             }
@@ -476,7 +485,7 @@ module FakeDynamo
             'Select' => 'ALL_PROJECTED_ATTRIBUTES',
             'IndexName' => 'one',
             'KeyConditions' => {
-              'AttributeName1' => {
+              'name' => {
                 'AttributeValueList' => [{'S' => 'test'}],
                 'ComparisonOperator' => 'EQ'
               }
@@ -516,12 +525,12 @@ module FakeDynamo
           t.put_item(item)
           25.times do |i|
             t.put_item({'TableName' => 'User',
-                'Item' => { 'AttributeName1' => { 'S' => '1' },
-                  'AttributeName2' => { 'N' => i},
+                'Item' => { 'name' => { 'S' => '1' },
+                  'age' => { 'N' => i},
                   'payload' => { 'S' => ('x' * 50 * 1024) }}})
           end
-          query['KeyConditions']['AttributeName1']['AttributeValueList'] = [{'S' => '1'}]
-          query['KeyConditions'].delete('AttributeName2')
+          query['KeyConditions']['name']['AttributeValueList'] = [{'S' => '1'}]
+          query['KeyConditions'].delete('age')
           response = t.query(query)
           response['LastEvaluatedKey'].should_not be_empty
         end
@@ -540,6 +549,7 @@ module FakeDynamo
         data['AttributeDefinitions'].delete_at(1)
         data['AttributeDefinitions'].delete_at(1)
         data.delete('LocalSecondaryIndexes')
+        data.delete('GlobalSecondaryIndexes')
         t = Table.new(data)
         expect {
           t.query(query)
@@ -563,12 +573,12 @@ module FakeDynamo
       end
 
       it 'should fail if hash condition is missing' do
-        index_query['KeyConditions'].delete('AttributeName1')
+        index_query['KeyConditions'].delete('name')
         expect { subject.query(index_query) }.to raise_error(ValidationException, /missed.*key.*schema/i)
       end
 
       it 'should fail if hash condition is not EQ' do
-        index_query['KeyConditions']['AttributeName1']['ComparisonOperator'] = 'GT'
+        index_query['KeyConditions']['name']['ComparisonOperator'] = 'GT'
         expect { subject.query(index_query) }.to raise_error(ValidationException, /condition not supported/i)
       end
 
@@ -580,38 +590,38 @@ module FakeDynamo
       it 'should sort based on lsi range key' do
         index_query.delete('Limit')
         result = subject.query(index_query)
-        keys = result['Items'].map { |i| [i['AttributeName3']['N'].to_i, i['AttributeName2']['N'].to_i] }
+        keys = result['Items'].map { |i| [i['score']['N'].to_i, i['age']['N'].to_i] }
         keys.should eq(keys.sort)
       end
 
       it 'should handle scanindexforward' do
         result = subject.query(query)
-        result['Items'].first['AttributeName2'].should eq({'N' => '3'})
+        result['Items'].first['age'].should eq({'N' => '3'})
         result = subject.query(query.merge({'ScanIndexForward' => false}))
-        result['Items'].first['AttributeName2'].should eq({'N' => '15'})
+        result['Items'].first['age'].should eq({'N' => '15'})
 
-        query['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att1' }, 'AttributeName2' => { "N" => '7' }}
+        query['ExclusiveStartKey'] = { 'name' => { 'S' => 'att1' }, 'age' => { "N" => '7' }}
         result = subject.query(query)
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+        result['Items'][0]['name'].should eq({'S' => 'att1'})
+        result['Items'][0]['age'].should eq({'N' => '9'})
 
         result = subject.query(query.merge({'ScanIndexForward' => false}))
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '5'})
+        result['Items'][0]['name'].should eq({'S' => 'att1'})
+        result['Items'][0]['age'].should eq({'N' => '5'})
 
-        query['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att1' }, 'AttributeName2' => { "N" => '8' }}
+        query['ExclusiveStartKey'] = { 'name' => { 'S' => 'att1' }, 'age' => { "N" => '8' }}
         result = subject.query(query)
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+        result['Items'][0]['name'].should eq({'S' => 'att1'})
+        result['Items'][0]['age'].should eq({'N' => '9'})
 
         result = subject.query(query.merge({'ScanIndexForward' => false}))
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att1'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '7'})
+        result['Items'][0]['name'].should eq({'S' => 'att1'})
+        result['Items'][0]['age'].should eq({'N' => '7'})
       end
 
       it 'should return lastevaluated key' do
         result = subject.query(query)
-        result['LastEvaluatedKey'].should == {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"11"}}
+        result['LastEvaluatedKey'].should == {"name"=>{"S"=>"att1"}, "age"=>{"N"=>"11"}}
         result = subject.query(query.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -621,26 +631,26 @@ module FakeDynamo
       end
 
       it 'should handle exclusive start key' do
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"7"}}}))
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"name"=>{"S"=>"att1"}, "age"=>{"N"=>"7"}}}))
         result['Count'].should eq(4)
-        result['Items'].first['AttributeName2'].should eq({'N' => '9'})
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"8"}}}))
+        result['Items'].first['age'].should eq({'N' => '9'})
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"name"=>{"S"=>"att1"}, "age"=>{"N"=>"8"}}}))
         result['Count'].should eq(4)
-        result['Items'].first['AttributeName2'].should eq({'N' => '9'})
-        result = subject.query(query.merge({'ExclusiveStartKey' => {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"88"}}}))
+        result['Items'].first['age'].should eq({'N' => '9'})
+        result = subject.query(query.merge({'ExclusiveStartKey' => {"name"=>{"S"=>"att1"}, "age"=>{"N"=>"88"}}}))
         result['Count'].should eq(0)
         result['Items'].should be_empty
       end
 
 
       it 'should return all elements if rangekeycondition is not given' do
-        query['KeyConditions'].delete('AttributeName2')
+        query['KeyConditions'].delete('age')
         result = subject.query(query)
         result['Count'].should eq(5)
       end
 
       it 'should handle between operator' do
-        query['KeyConditions']['AttributeName2'] = {
+        query['KeyConditions']['age'] = {
           'AttributeValueList' => [{'N' => '1'}, {'N' => '7'}],
             'ComparisonOperator' => 'BETWEEN'
         }
@@ -649,16 +659,16 @@ module FakeDynamo
       end
 
       it 'should handle attributes_to_get' do
-        query['AttributesToGet'] = ['AttributeName1', "AttributeName2"]
+        query['AttributesToGet'] = ['name', "age"]
         result = subject.query(query)
-        result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'},
-                                        'AttributeName2' => { 'N' => '3' })
+        result['Items'].first.should eq('name' => { 'S' => 'att1'},
+                                        'age' => { 'N' => '3' })
       end
 
       it 'should handle attributes_to_get within index' do
-        index_query['AttributesToGet'] = ['AttributeName1']
+        index_query['AttributesToGet'] = ['name']
         result = subject.query(index_query)
-        result['Items'].first.should eq('AttributeName1' => { 'S' => 'att1'})
+        result['Items'].first.should eq('name' => { 'S' => 'att1'})
       end
     end
 
@@ -668,8 +678,8 @@ module FakeDynamo
         (1..3).each do |i|
           (15.downto(1)).each do |j|
             next if j.even?
-            item['Item']['AttributeName1']['S'] = "att#{i}"
-            item['Item']['AttributeName2']['N'] = j.to_s
+            item['Item']['name']['S'] = "att#{i}"
+            item['Item']['age']['N'] = j.to_s
             t.put_item(item)
           end
         end
@@ -680,7 +690,7 @@ module FakeDynamo
         {
           'TableName' => 'Table1',
           'ScanFilter' => {
-            'AttributeName2' => {
+            'age' => {
               'AttributeValueList' => [{'N' => '1'}],
               'ComparisonOperator' => 'GE'
             }
@@ -716,14 +726,14 @@ module FakeDynamo
         result = subject.scan(scan)
         result['Count'].should eq(24)
 
-        scan['ScanFilter']['AttributeName2']['ComparisonOperator'] = 'EQ'
+        scan['ScanFilter']['age']['ComparisonOperator'] = 'EQ'
         subject.scan(scan)['Count'].should eq(3)
       end
 
       it 'should return lastevaluated key' do
         scan['Limit'] = 5
         result = subject.scan(scan)
-        result['LastEvaluatedKey'].should == {"AttributeName1"=>{"S"=>"att1"}, "AttributeName2"=>{"N"=>"9"}}
+        result['LastEvaluatedKey'].should == {"name"=>{"S"=>"att1"}, "age"=>{"N"=>"9"}}
         result = subject.scan(scan.merge('Limit' => 100))
         result['LastEvaluatedKey'].should be_nil
 
@@ -733,14 +743,14 @@ module FakeDynamo
       end
 
       it 'should handle ordering' do
-        scan['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att2' }, 'AttributeName2' => { "N" => '7' }}
+        scan['ExclusiveStartKey'] = { 'name' => { 'S' => 'att2' }, 'age' => { "N" => '7' }}
         result = subject.scan(scan)
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+        result['Items'][0]['name'].should eq({'S' => 'att2'})
+        result['Items'][0]['age'].should eq({'N' => '9'})
 
-        scan['ExclusiveStartKey'] = { 'AttributeName1' => { 'S' => 'att2' }, 'AttributeName2' => { "N" => '8' }}
-        result['Items'][0]['AttributeName1'].should eq({'S' => 'att2'})
-        result['Items'][0]['AttributeName2'].should eq({'N' => '9'})
+        scan['ExclusiveStartKey'] = { 'name' => { 'S' => 'att2' }, 'age' => { "N" => '8' }}
+        result['Items'][0]['name'].should eq({'S' => 'att2'})
+        result['Items'][0]['age'].should eq({'N' => '9'})
       end
 
     end
