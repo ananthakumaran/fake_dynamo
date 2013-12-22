@@ -7,5 +7,6 @@ group :development do
   gem 'pry'
   gem 'simplecov'
   gem 'guard-rspec'
+  gem 'rb-fsevent', '~> 0.9'
   gem 'growl'
 end
