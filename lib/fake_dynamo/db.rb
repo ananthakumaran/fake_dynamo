@@ -1,6 +1,5 @@
 module FakeDynamo
   class DB
-
     include Validation
 
     attr_accessor :tables
@@ -65,8 +64,8 @@ module FakeDynamo
       result_tables = all_tables[start, limit]
       response = { 'TableNames' => result_tables }
 
-      if (start + limit ) < all_tables.size
-        last_table = all_tables[start + limit -1]
+      if (start + limit) < all_tables.size
+        last_table = all_tables[start + limit - 1]
         response.merge!({ 'LastEvaluatedTableName' => last_table })
       end
       response
@@ -86,7 +85,6 @@ module FakeDynamo
     end
 
     delegate_to_table :put_item, :get_item, :delete_item, :update_item, :query, :scan
-
 
     def batch_get_item(data)
       response = {}
