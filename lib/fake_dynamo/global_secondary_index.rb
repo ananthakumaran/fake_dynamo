@@ -3,7 +3,11 @@ module FakeDynamo
     extend Validation
     include Throughput
 
-    attr_accessor :name, :key_schema, :projection
+    attr_accessor :name, :key_schema, :projection, :status
+
+    def initialize
+      @status = 'CREATING'
+    end
 
     class << self
       def from_data(index_data, attribute_definitions, table_key_schema)
@@ -17,14 +21,18 @@ module FakeDynamo
       end
     end
 
-    # TODO: index status
+    def activate
+      @status = 'ACTIVE'
+    end
+
     def description
-      {'IndexName' => name,
+      { 'IndexName' => name,
         'IndexSizeBytes' => 0,
-        'IndexStatus' => "ACTIVE",
+        'IndexStatus' => status,
         'ItemCount' => 0,
         'KeySchema' => key_schema.description,
-        'Projection' => throughput_description }
+        'Projection' => projection.description,
+        'ProvisionedThroughput' => throughput_description }
     end
   end
 end

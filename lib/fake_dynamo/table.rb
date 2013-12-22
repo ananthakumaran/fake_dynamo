@@ -69,6 +69,9 @@ module FakeDynamo
 
     def activate
       @status = 'ACTIVE'
+      if @global_secondary_indexes
+        @global_secondary_indexes.each(&:activate)
+      end
     end
 
     def delete
