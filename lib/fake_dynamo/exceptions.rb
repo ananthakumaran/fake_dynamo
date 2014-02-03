@@ -3,7 +3,7 @@ module FakeDynamo
 
     class_attribute :description, :type, :status
 
-    self.type = 'com.amazon.dynamodb.v20111205'
+    self.type = 'com.amazon.dynamodb.v20120810'
     self.status = 400
 
     attr_reader :detail
