@@ -19,6 +19,10 @@ module FakeDynamo
     let(:app) { Server.new }
     let(:server) { Server.new! }
 
+    after(:all) do
+      server.storage.reset
+    end
+
     it "should extract_operation" do
       server.extract_operation('HTTP_X_AMZ_TARGET' => 'DynamoDB_20111205.CreateTable').should eq('CreateTable')
       expect {

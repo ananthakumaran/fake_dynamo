@@ -77,8 +77,8 @@ module FakeDynamo
       log.warn "Loading fake_dynamo data ..."
       loop do
         operation = file.readline.chomp
-        size = Integer(file.readline.chomp)
-        data = file.read(size)
+        size = Integer(file.readline.chomp) - "\n".bytesize
+        data = file.read(size); file.readline 
         db.process(operation, JSON.parse(data))
       end
     rescue EOFError
@@ -100,6 +100,7 @@ module FakeDynamo
 
     def compact!
       return if @compacted
+      @aof.close if @aof
       @aof = Tempfile.new('compact')
       log.warn "Compacting db ..."
       db.tables.each do |_, table|

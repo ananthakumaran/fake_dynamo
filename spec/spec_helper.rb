@@ -7,6 +7,7 @@ require 'rspec'
 require 'rack/test'
 require 'fake_dynamo'
 require 'pry'
+require 'tmpdir'
 
 module Utils
   def self.deep_copy(x)
@@ -17,7 +18,7 @@ end
 module FakeDynamo
   class Storage
     def initialize
-      init_db('/tmp/test_db.fdb')
+      init_db(File.join(Dir.tmpdir, 'test_db.fdb'))
       delete_db
     end
   end
