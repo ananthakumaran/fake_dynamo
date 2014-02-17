@@ -81,7 +81,6 @@ module FakeDynamo
         data = file.read(size); file.readline 
         db.process(operation, JSON.parse(data))
       end
-      file.close
     rescue EOFError
       file.close
       compact_if_necessary
