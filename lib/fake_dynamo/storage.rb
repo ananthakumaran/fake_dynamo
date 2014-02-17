@@ -78,7 +78,7 @@ module FakeDynamo
       loop do
         operation = file.readline.chomp
         size = Integer(file.readline.chomp) - "\n".bytesize
-        data = file.read(size); file.readline 
+        data = file.read(size); file.readline
         db.process(operation, JSON.parse(data))
       end
     rescue EOFError
