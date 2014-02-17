@@ -77,7 +77,7 @@ module FakeDynamo
       log.warn "Loading fake_dynamo data ..."
       loop do
         operation = file.readline.chomp
-        size = Integer(file.readline.chomp) - 1
+        size = Integer(file.readline.chomp) - "\n".bytesize
         data = file.read(size); file.readline 
         db.process(operation, JSON.parse(data))
       end
