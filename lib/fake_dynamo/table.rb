@@ -257,6 +257,10 @@ module FakeDynamo
         conditions = {}
       end
 
+      if filter_conditions = data['QueryFilter']
+        conditions.merge!(filter_conditions)
+      end
+
       results, last_evaluated_item, _ = filter(matched_items, conditions, data['Limit'], true, sack_attributes(data, index))
 
       response = {'Count' => results.size}.merge(consumed_capacity(data))

@@ -520,6 +520,26 @@ module FakeDynamo
         }
       end
 
+      let(:filter_query) do
+        {
+          'TableName' => 'Table1',
+          'Limit' => 5,
+          'KeyConditions' => {
+            'name' => {
+              'AttributeValueList' => [{'S' => 'att1'}],
+              'ComparisonOperator' => 'EQ'
+            },
+          },
+          'QueryFilter' => {
+            'score' => {
+              'AttributeValueList' => [{'N' => '3'}],
+              'ComparisonOperator' => 'GT'
+            },
+            'ScanIndexForward' => true
+          }
+        }
+      end
+
       context 'query projection' do
         let(:query) do
           {
@@ -606,6 +626,11 @@ module FakeDynamo
       it 'should handle basic query' do
         result = subject.query(query)
         result['Count'].should eq(5)
+      end
+
+      it 'should handle filter query' do
+        result = subject.query(filter_query)
+        result['Count'].should eq(2)
       end
 
       it 'should handle scanindexforward' do
