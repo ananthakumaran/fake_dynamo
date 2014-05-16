@@ -227,7 +227,7 @@ module FakeDynamo
 
       index = nil
       if index_name = data['IndexName']
-        index = local_secondary_indexes.find { |i| i.name == index_name }
+        index = (global_secondary_indexes + local_secondary_indexes).find { |i| i.name == index_name }
         raise ValidationException, "The provided starting key is invalid" unless index
         schema = index.key_schema
       else
