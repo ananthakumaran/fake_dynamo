@@ -21,6 +21,19 @@ module FakeDynamo
       end
     end
 
+    def sort_value(item, table_key_schema)
+      value = []
+      if key_schema.range_key
+        value << item[key_schema.range_key.name]
+      end
+
+      value << item[table_key_schema.hash_key.name]
+      if table_key_schema.range_key
+        value << table_key_schema.range_key
+      end
+      value
+    end
+
     def activate
       @status = 'ACTIVE'
     end

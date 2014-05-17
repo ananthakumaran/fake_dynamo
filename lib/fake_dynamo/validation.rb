@@ -197,9 +197,9 @@ module FakeDynamo
       end
     end
 
-    def validate_hash_condition(condition)
+    def validate_hash_condition(condition, schema)
       unless condition
-        raise ValidationException, "Query condition missed key schema element #{key_schema.hash_key.name}"
+        raise ValidationException, "Query condition missed key schema element #{schema.hash_key.name}"
       end
 
       if condition['ComparisonOperator'] != 'EQ'
@@ -208,7 +208,7 @@ module FakeDynamo
     end
 
     def validate_range_condition(condition, schema)
-      unless condition.has_key?(schema.range_key.name)
+      unless condition.key?(schema.range_key.name)
         raise ValidationException, "Query condition missed key schema element #{schema.range_key.name}"
       end
     end
@@ -216,6 +216,12 @@ module FakeDynamo
     def validate_table_update(data)
       if !data['GlobalSecondaryIndexUpdates'] && !data['ProvisionedThroughput']
         raise ValidationException, "At least one of ProvisionedThroughput or GlobalSecondaryIndexUpdates is required"
+      end
+    end
+
+    def validate_consistent_read_and_global_secondary_index(data, index)
+      if data['ConsistentRead'] && index.kind_of?(GlobalSecondaryIndex)
+        raise ValidationException, "Consistent reads are not supported on global indexes"
       end
     end
   end

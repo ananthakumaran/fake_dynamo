@@ -227,25 +227,28 @@ module FakeDynamo
 
       index = nil
       if index_name = data['IndexName']
-        index = local_secondary_indexes.find { |i| i.name == index_name }
-        raise ValidationException, "The provided starting key is invalid" unless index
+        index = find_index(index_name)
+        raise ValidationException, "The table does not have the specified index" unless index
+        validate_consistent_read_and_global_secondary_index(data, index)
         schema = index.key_schema
       else
         schema = key_schema
       end
 
       hash_condition = data['KeyConditions'][schema.hash_key.name]
-      validate_hash_condition(hash_condition)
+      validate_hash_condition(hash_condition, schema)
 
       hash_attribute = Attribute.from_hash(schema.hash_key.name, hash_condition['AttributeValueList'].first)
-      matched_items = get_items_by_hash_key(hash_attribute)
-
       forward = data.key?('ScanIndexForward') ? data['ScanIndexForward'] : true
+
+      matched_items = get_items_by_key(schema.hash_key.name, hash_attribute)
+
       if index
-        matched_items = drop_till_start_index(matched_items, data['ExclusiveStartKey'], forward, schema)
+        matched_items = drop_till_start_index(matched_items, data['ExclusiveStartKey'], forward, index)
       else
         matched_items = drop_till_start(matched_items, data['ExclusiveStartKey'], forward, schema)
       end
+
 
       if !(range_condition = data['KeyConditions'].clone.tap { |h| h.delete(schema.hash_key.name) }).empty?
         validate_range_condition(range_condition, schema)
@@ -403,7 +406,16 @@ module FakeDynamo
       end
     end
 
-    def drop_till_start_index(all_items, start_key_hash, forward, schema)
+    def drop_till_start_index(all_items, start_key_hash, forward, index)
+      if index.kind_of?(GlobalSecondaryIndex)
+        drop_till_start_global_index(all_items, start_key_hash, forward, index)
+      else
+        drop_till_start_secondary_index(all_items, start_key_hash, forward, index)
+      end
+    end
+
+    def drop_till_start_secondary_index(all_items, start_key_hash, forward, index)
+      schema = index.key_schema
       all_items = all_items.sort_by { |item| Key.from_index_item(item, schema) }
 
       unless forward
@@ -417,6 +429,32 @@ module FakeDynamo
             Key.from_index_item(item, schema) <= start_key
           else
             Key.from_index_item(item, schema) >= start_key
+          end
+        end
+      else
+        all_items
+      end
+    end
+
+    def drop_till_start_global_index(all_items, start_key_hash, forward, index)
+      schema = index.key_schema
+      if schema.range_key
+        all_items = all_items.select { |item| item[schema.range_key.name] }
+      end
+
+      all_items = all_items.sort_by { |item| index.sort_value(item, key_schema) }
+      unless forward
+        all_items = all_items.reverse
+      end
+
+      if start_key_hash
+        start_key = index.sort_value(Item.from_data(start_key_hash, key_schema, attribute_definitions), key_schema)
+        all_items.drop_while do |item|
+          comp = index.sort_value(item, key_schema) <=> start_key
+          if forward
+            comp <= 0
+          else
+            comp >= 0
           end
         end
       else
@@ -460,9 +498,9 @@ module FakeDynamo
       [result, last_evaluated_item, scaned_count]
     end
 
-    def get_items_by_hash_key(hash_key)
+    def get_items_by_key(key, value)
       items.values.select do |i|
-        i.key.primary == hash_key
+        i[key] == value
       end
     end
 
@@ -553,9 +591,19 @@ module FakeDynamo
       end
     end
 
+    def find_index(name)
+      find_local_secondary_index(name) || find_global_secondary_index(name)
+    end
+
     def find_global_secondary_index(name)
       if @global_secondary_indexes
         @global_secondary_indexes.find { |i| i.name == name }
+      end
+    end
+
+    def find_local_secondary_index(name)
+      if @local_secondary_indexes
+        @local_secondary_indexes.find { |i| i.name == name }
       end
     end
 

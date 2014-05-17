@@ -27,9 +27,8 @@ module FakeDynamo
       end
     end
 
-
     def [](name)
-      attributes[name] or key[name]
+      attributes[name] || key[name]
     end
 
     def as_hash
@@ -113,7 +112,7 @@ module FakeDynamo
       if data['ReturnItemCollectionMetrics'] == 'SIZE'
         {  'ItemCollectionMetrics' =>
           { 'ItemCollectionKey' => key.primary.as_hash,
-            'SizeEstimateRangeGB' => [ 0, 1 ] } }
+            'SizeEstimateRangeGB' => [0, 1] } }
       else
         {}
       end

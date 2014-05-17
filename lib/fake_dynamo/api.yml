@@ -415,6 +415,8 @@
     - :required
     IndexName:
     - :string
+    - :pattern: !ruby/regexp /[a-zA-Z0-9_.-]+/
+    - :within: !ruby/range 3..255
     Select:
     - :string
     - :enum: [ALL_ATTRIBUTES, ALL_PROJECTED_ATTRIBUTES, COUNT, SPECIFIC_ATTRIBUTES]
@@ -678,3 +680,9 @@
                   - :required
               - :required
           - :required
+- :name: DeleteTable
+  :method: :delete_table
+  :inputs:
+    TableName:
+    - :string
+    - :required

@@ -487,7 +487,7 @@ module FakeDynamo
         }
       end
 
-      let(:index_query) do
+      let(:lsi_query) do
         {
           'TableName' => 'Table1',
           'Limit' => 5,
@@ -500,6 +500,20 @@ module FakeDynamo
             'score' => {
               'AttributeValueList' => [{'N' => '1'}],
               'ComparisonOperator' => 'GT'
+            }
+          },
+          'ScanIndexForward' => true
+        }
+      end
+
+      let(:gsi_query) do
+        {
+          'TableName' => 'Table1',
+          'IndexName' => 'age_score',
+          'KeyConditions' => {
+            'age' => {
+              'AttributeValueList' => [{'N' => '8'}],
+              'ComparisonOperator' => 'EQ'
             }
           },
           'ScanIndexForward' => true
@@ -565,8 +579,6 @@ module FakeDynamo
         end
       end
 
-
-
       it 'should not allow count and attributes_to_get simutaneously' do
         expect {
           subject.query({'Select' => 'COUNT', 'AttributesToGet' => ['xx']})
@@ -594,33 +606,6 @@ module FakeDynamo
       it 'should handle basic query' do
         result = subject.query(query)
         result['Count'].should eq(5)
-      end
-
-      it 'should fail if index name is missing' do
-        index_query.delete('IndexName')
-        expect { subject.query(index_query) }.to raise_error(ValidationException, /missed.*key/i)
-      end
-
-      it 'should fail if hash condition is missing' do
-        index_query['KeyConditions'].delete('name')
-        expect { subject.query(index_query) }.to raise_error(ValidationException, /missed.*key.*schema/i)
-      end
-
-      it 'should fail if hash condition is not EQ' do
-        index_query['KeyConditions']['name']['ComparisonOperator'] = 'GT'
-        expect { subject.query(index_query) }.to raise_error(ValidationException, /condition not supported/i)
-      end
-
-      it 'should handle index query' do
-        result = subject.query(index_query)
-        result['Count'].should eq(5)
-      end
-
-      it 'should sort based on lsi range key' do
-        index_query.delete('Limit')
-        result = subject.query(index_query)
-        keys = result['Items'].map { |i| [i['score']['N'].to_i, i['age']['N'].to_i] }
-        keys.should eq(keys.sort)
       end
 
       it 'should handle scanindexforward' do
@@ -694,10 +679,100 @@ module FakeDynamo
                                         'age' => { 'N' => '3' })
       end
 
-      it 'should handle attributes_to_get within index' do
-        index_query['AttributesToGet'] = ['name']
-        result = subject.query(index_query)
-        result['Items'].first.should eq('name' => { 'S' => 'att1'})
+      context "local secondary query" do
+        it 'should fail if index name is missing' do
+          lsi_query.delete('IndexName')
+          expect { subject.query(lsi_query) }.to raise_error(ValidationException, /missed.*key/i)
+        end
+
+        it 'should fail on invalid index name' do
+          lsi_query['IndexName'] = 'xxx'
+          expect { subject.query(lsi_query) }.to raise_error(ValidationException, /does not have the specified index/)
+        end
+
+        it 'should fail if hash condition is missing' do
+          lsi_query['KeyConditions'].delete('name')
+          expect { subject.query(lsi_query) }.to raise_error(ValidationException, /missed.*key.*schema/i)
+        end
+
+        it 'should fail if hash condition is not EQ' do
+          lsi_query['KeyConditions']['name']['ComparisonOperator'] = 'GT'
+          expect { subject.query(lsi_query) }.to raise_error(ValidationException, /condition not supported/i)
+        end
+
+        it 'should handle index query' do
+          result = subject.query(lsi_query)
+          result['Count'].should eq(5)
+        end
+
+        it 'should sort based on lsi range key' do
+          lsi_query.delete('Limit')
+          result = subject.query(lsi_query)
+          keys = result['Items'].map { |i| [i['score']['N'].to_i, i['age']['N'].to_i] }
+          keys.should eq(keys.sort)
+        end
+
+        it 'should handle attributes_to_get within index' do
+          lsi_query['AttributesToGet'] = ['name']
+          result = subject.query(lsi_query)
+          result['Items'].first.should eq('name' => { 'S' => 'att1'})
+        end
+      end
+
+      context 'global secondary index' do
+        subject do
+          t = Table.new(data)
+          (1..10).each do |i|
+            (1..10).each do |j|
+              item['Item']['name']['S'] = "att#{i}"
+              item['Item']['age'] = { 'N' => j.to_s }
+              if j.even?
+                item['Item']['score'] = {'N' => (i*10 + j).to_s }
+              else
+                item['Item'].delete('score')
+              end
+              t.put_item(item)
+            end
+          end
+          t
+        end
+        it 'should not support consitent read' do
+          gsi_query['ConsistentRead'] = true
+          expect { subject.query(gsi_query) }.to raise_error(ValidationException, /consistent/i)
+        end
+
+        it 'should not return results if range key is missing' do
+          gsi_query['KeyConditions']['age']['AttributeValueList'] = [{'N' => '9'}]
+          result = subject.query(gsi_query)
+          result['Items'].size.should eq(0)
+        end
+
+        it 'should handle global index query with hash' do
+          gsi_query['KeyConditions']['age']['AttributeValueList'] = [{'N' => '2'}]
+          result = subject.query(gsi_query)
+          result['Items'].size.should eq(10)
+        end
+
+        it 'should handle global index query with hash & range' do
+          gsi_query['KeyConditions'] = {
+            'age' => {
+              'AttributeValueList' => [{'N' => '2'}],
+              'ComparisonOperator' => 'EQ'
+            },
+            'score' => {
+              'AttributeValueList' => [{'N' => '53'}],
+              'ComparisonOperator' => 'LT'
+            }
+          }
+          result = subject.query(gsi_query)
+          result['Items'].size.should eq(5)
+        end
+
+        it 'should sort based on gsi range key' do
+          result = subject.query(gsi_query)
+          keys = result['Items'].map { |i| [i['score']['N'].to_i] }
+          keys.should eq(keys.sort)
+        end
       end
     end
 
