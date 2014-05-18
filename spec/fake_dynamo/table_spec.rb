@@ -520,7 +520,7 @@ module FakeDynamo
         }
       end
 
-      let(:filter_query) do
+      let(:query_with_filter) do
         {
           'TableName' => 'Table1',
           'Limit' => 5,
@@ -534,9 +534,9 @@ module FakeDynamo
             'score' => {
               'AttributeValueList' => [{'N' => '3'}],
               'ComparisonOperator' => 'GT'
-            },
-            'ScanIndexForward' => true
-          }
+            }
+          },
+          'ScanIndexForward' => true
         }
       end
 
@@ -628,11 +628,6 @@ module FakeDynamo
         result['Count'].should eq(5)
       end
 
-      it 'should handle filter query' do
-        result = subject.query(filter_query)
-        result['Count'].should eq(2)
-      end
-
       it 'should handle scanindexforward' do
         result = subject.query(query)
         result['Items'].first['age'].should eq({'N' => '3'})
@@ -680,7 +675,6 @@ module FakeDynamo
         result['Count'].should eq(0)
         result['Items'].should be_empty
       end
-
 
       it 'should return all elements if rangekeycondition is not given' do
         query['KeyConditions'].delete('age')
@@ -797,6 +791,23 @@ module FakeDynamo
           result = subject.query(gsi_query)
           keys = result['Items'].map { |i| [i['score']['N'].to_i] }
           keys.should eq(keys.sort)
+        end
+      end
+
+      context 'query filter' do
+        it 'should require attributes' do
+          query_with_filter['QueryFilter']['score'].delete('AttributeValueList')
+          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /invalid.*ComparisonOperator/i)
+        end
+
+        it 'should require operator' do
+          query_with_filter['QueryFilter']['score'].delete('ComparisonOperator')
+          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /missing.*ComparisonOperator/i)
+        end
+
+        it 'should handle query filter' do
+          result = subject.query(query_with_filter)
+          result['Count'].should eq(2)
         end
       end
     end

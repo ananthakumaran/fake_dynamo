@@ -261,6 +261,8 @@ module FakeDynamo
         conditions.merge!(filter_conditions)
       end
 
+      validate_conditions(conditions)
+
       results, last_evaluated_item, _ = filter(matched_items, conditions, data['Limit'], true, sack_attributes(data, index))
 
       response = {'Count' => results.size}.merge(consumed_capacity(data))
@@ -289,6 +291,8 @@ module FakeDynamo
       else
         current_segment = items.values
       end
+
+      validate_conditions(conditions)
 
       all_items = drop_till_start(current_segment, data['ExclusiveStartKey'], true, key_schema)
       results, last_evaluated_item, scaned_count = filter(all_items, conditions, data['Limit'], false)

@@ -213,6 +213,16 @@ module FakeDynamo
       end
     end
 
+    def validate_conditions(conditions)
+      if conditions.any? { |_, v| !v['ComparisonOperator'] }
+        raise ValidationException, "Missing required key ComparisonOperator"
+      end
+
+      if conditions.any? { |_, v| !v['AttributeValueList'] }
+        raise ValidationException, "One or more parameter values were invalid: Invalid number of argument(s) for the ComparisonOperator"
+      end
+    end
+
     def validate_table_update(data)
       if !data['GlobalSecondaryIndexUpdates'] && !data['ProvisionedThroughput']
         raise ValidationException, "At least one of ProvisionedThroughput or GlobalSecondaryIndexUpdates is required"
