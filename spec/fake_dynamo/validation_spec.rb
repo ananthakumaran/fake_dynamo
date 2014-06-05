@@ -31,6 +31,15 @@ module FakeDynamo
       end
     end
 
+    it 'should allow null comparison operator' do
+      subject.validate_payload('Scan', {
+          'TableName' => 'Table1',
+          'ScanFilter' => {
+            'age' => { 'ComparisonOperator' => 'NULL' }
+          }
+        })
+    end
+
     %w[ReadCapacityUnits WriteCapacityUnits].each do |units|
       it "should validate numericality of #{units}" do
         data['ProvisionedThroughput']['ReadCapacityUnits'] = 'xxx'

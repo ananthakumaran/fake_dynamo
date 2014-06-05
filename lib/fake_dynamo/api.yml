@@ -526,7 +526,7 @@
             ComparisonOperator:
             - :string
             - :required
-            - :enum: [EQ, NE, LE, LT, GE, GT, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH, IN, BETWEEN]
+            - :enum: [EQ, NE, LE, LT, GE, GT, NOT_NULL, 'NULL', CONTAINS, NOT_CONTAINS, BEGINS_WITH, IN, BETWEEN]
     ExclusiveStartKey:
     - :map:
         :key:
