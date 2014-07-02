@@ -646,7 +646,6 @@ module FakeDynamo
         @global_secondary_indexes = global_indexes_data.map do |index|
           GlobalSecondaryIndex.from_data(index, data['AttributeDefinitions'], @key_schema)
         end
-        validate_range_key(key_schema)
       end
     end
 
