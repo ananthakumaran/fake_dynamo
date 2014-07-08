@@ -593,18 +593,6 @@ module FakeDynamo
         }.to raise_error(ValidationException, /count/i)
       end
 
-      it 'should not allow to query on a table without rangekey' do
-        data['KeySchema'].delete_at(1)
-        data['AttributeDefinitions'].delete_at(1)
-        data['AttributeDefinitions'].delete_at(1)
-        data.delete('LocalSecondaryIndexes')
-        data.delete('GlobalSecondaryIndexes')
-        t = Table.new(data)
-        expect {
-          t.query(query)
-        }.to raise_error(ValidationException, /key schema/)
-      end
-
       it 'should only allow limit greater than zero' do
         expect {
           subject.query(query.merge('Limit' => 0))

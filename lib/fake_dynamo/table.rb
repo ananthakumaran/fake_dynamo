@@ -221,7 +221,6 @@ module FakeDynamo
     end
 
     def query(data)
-      range_key_present
       select_and_attributes_to_get_present?(data)
       validate_limit(data)
 
@@ -665,12 +664,6 @@ module FakeDynamo
 
       if used_keys.uniq.size != attribute_keys.size
         raise ValidationException, "Some AttributeDefinitions are not used AttributeDefinitions: #{attribute_keys.inspect}, keys used: #{used_keys.inspect}"
-      end
-    end
-
-    def range_key_present
-      unless key_schema.range_key
-        raise ValidationException, "Query can be performed only on a table with a HASH,RANGE key schema"
       end
     end
   end
