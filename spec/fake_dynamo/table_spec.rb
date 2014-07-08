@@ -29,6 +29,14 @@ module FakeDynamo
               "ProjectionType" => "ALL"
             },
             "ProvisionedThroughput" => {"ReadCapacityUnits" => 5 ,"WriteCapacityUnits" => 10}
+          },
+          {
+            "IndexName" => "hash_only",
+            "KeySchema" => [{"AttributeName" => "score", "KeyType" => "HASH"}],
+            "Projection" => {
+              "ProjectionType" => "ALL"
+            },
+            "ProvisionedThroughput" => {"ReadCapacityUnits" => 5 ,"WriteCapacityUnits" => 10}
           }],
         "ProvisionedThroughput" => {"ReadCapacityUnits" => 5 ,"WriteCapacityUnits" => 10}
       }
@@ -772,6 +780,18 @@ module FakeDynamo
           result = subject.query(gsi_query)
           keys = result['Items'].map { |i| [i['score']['N'].to_i] }
           keys.should eq(keys.sort)
+        end
+
+        it 'should handle global index query with only hash' do
+          gsi_query['KeyConditions'] = {
+            'score' => {
+              'AttributeValueList' => [{'N' => '42'}],
+              'ComparisonOperator' => 'EQ'
+            }
+          }
+          gsi_query['IndexName'] = 'hash_only'
+          result = subject.query(gsi_query)
+          result['Items'].size.should eq(1)
         end
       end
     end
