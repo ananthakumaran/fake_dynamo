@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 module FakeDynamo
+  class ValidationTest
+    extend Validation
+  end
+
   describe Table do
 
     let(:data) do
@@ -810,7 +814,7 @@ module FakeDynamo
 
         it 'should require operator' do
           query_with_filter['QueryFilter']['score'].delete('ComparisonOperator')
-          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /missing.*ComparisonOperator/i)
+          expect { ValidationTest.validate_payload('Query', query_with_filter) }.to raise_error(ValidationException, /null.*ComparisonOperator/i)
         end
 
         it 'should handle query filter' do
