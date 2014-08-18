@@ -528,6 +528,26 @@ module FakeDynamo
         }
       end
 
+      let(:query_with_filter) do
+        {
+          'TableName' => 'Table1',
+          'Limit' => 5,
+          'KeyConditions' => {
+            'name' => {
+              'AttributeValueList' => [{'S' => 'att1'}],
+              'ComparisonOperator' => 'EQ'
+            },
+          },
+          'QueryFilter' => {
+            'score' => {
+              'AttributeValueList' => [{'N' => '3'}],
+              'ComparisonOperator' => 'GT'
+            }
+          },
+          'ScanIndexForward' => true
+        }
+      end
+
       context 'query projection' do
         let(:query) do
           {
@@ -651,7 +671,6 @@ module FakeDynamo
         result['Count'].should eq(0)
         result['Items'].should be_empty
       end
-
 
       it 'should return all elements if rangekeycondition is not given' do
         query['KeyConditions'].delete('age')
@@ -780,6 +799,23 @@ module FakeDynamo
           gsi_query['IndexName'] = 'hash_only'
           result = subject.query(gsi_query)
           result['Items'].size.should eq(1)
+        end
+      end
+
+      context 'query filter' do
+        it 'should require attributes' do
+          query_with_filter['QueryFilter']['score'].delete('AttributeValueList')
+          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /invalid.*ComparisonOperator/i)
+        end
+
+        it 'should require operator' do
+          query_with_filter['QueryFilter']['score'].delete('ComparisonOperator')
+          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /missing.*ComparisonOperator/i)
+        end
+
+        it 'should handle query filter' do
+          result = subject.query(query_with_filter)
+          result['Count'].should eq(2)
         end
       end
     end

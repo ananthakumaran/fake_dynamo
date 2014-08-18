@@ -458,6 +458,34 @@
             - :enum: [EQ, LE, LT, GE, GT, BEGINS_WITH, BETWEEN]
     - :within: !ruby/range 1..2
     - :required
+    QueryFilter:
+    - :map:
+        :key:
+        - :string
+        :value:
+        - :structure:
+            AttributeValueList:
+            - :list:
+              - :structure:
+                  S:
+                  - :string
+                  N:
+                  - :string
+                  B:
+                  - :blob
+                  SS:
+                  - :list:
+                    - :string
+                  NS:
+                  - :list:
+                    - :string
+                  BS:
+                  - :list:
+                    - :blob
+            ComparisonOperator:
+            - :string
+            - :required
+            - :enum: [EQ, NE, LE, LT, GE, GT, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH, IN, BETWEEN]
     ScanIndexForward:
     - :boolean
     ExclusiveStartKey:
