@@ -809,7 +809,7 @@ module FakeDynamo
       context 'query filter' do
         it 'should require attributes' do
           query_with_filter['QueryFilter']['score'].delete('AttributeValueList')
-          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /invalid.*ComparisonOperator/i)
+          expect { subject.query(query_with_filter) }.to raise_error(ValidationException, /operation.*not.*supported/i)
         end
 
         it 'should require operator' do
