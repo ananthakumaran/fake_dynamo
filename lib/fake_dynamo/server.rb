@@ -11,7 +11,7 @@ module FakeDynamo
       status = 200
       content_type 'application/x-amz-json-1.0'
       begin
-        if ENV['throws'] == "1"
+        if settings.throws
           status = 400
           puts 'Whoops'
           raise ProvisionedThroughputExceededException

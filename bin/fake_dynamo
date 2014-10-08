@@ -29,6 +29,10 @@ OptionParser.new do |opts|
     options[:pid] = pid
   end
 
+  opts.on "-X", "--throughput-exception", "Always throw throughput exception" do |throws|
+    options[:throws] = throws
+  end
+
   opts.on "-D", "--[no-]daemonize", "Detaches the process" do |daemonize|
     options[:daemonize] = daemonize
   end
@@ -43,10 +47,9 @@ if options[:daemonize]
   Process.daemon(true, true)
 end
 
-if ENV['throws'] == "1"
-  puts "Running in error-ful mode"
+if options[:throws]
+  puts "*** Running in error-ful mode ***"
 end
-
 
 if (pid = options[:pid])
   if File.exist?(pid)
@@ -71,7 +74,7 @@ if options[:compact]
 end
 
 FakeDynamo::Storage.instance.load_aof
-FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind]) do |server|
+FakeDynamo::Server.run!(:port => options[:port], :bind => options[:bind], :throws => options[:throws]) do |server|
   if server.respond_to?('config') && server.config.respond_to?('[]=')
     server.config[:AccessLog] = []
   end
