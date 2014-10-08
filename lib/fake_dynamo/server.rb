@@ -13,7 +13,7 @@ module FakeDynamo
       begin
         if settings.throws
           status = 400
-          puts 'Whoops'
+          log.info "Whoops!"
           raise ProvisionedThroughputExceededException
         end
         data = JSON.parse(request.body.read)
