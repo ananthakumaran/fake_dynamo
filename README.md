@@ -2,6 +2,13 @@
 
 local hosted, inmemory Amazon DynamoDB emulator.
 
+## Status
+
+This project is no longer maintained. Checkout Amazon
+[DynamoDB Local][dynamodb_local] if you are looking for
+implementation of latest version.
+
+
 ## Versions
 
 | Amazon DynamoDB API version | FakeDynamo gem version|
@@ -73,5 +80,6 @@ during start up if the file size is greater than 100mb. you can
 manually compact it by passing --compact flag.
 
 
+[dynamodb_local]: http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html
 [v2]: http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Operations.html
 [v1]: http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Appendix.APIv20111205.html
