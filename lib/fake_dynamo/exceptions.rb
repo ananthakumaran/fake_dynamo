@@ -54,4 +54,10 @@ module FakeDynamo
   class ConditionalCheckFailedException < Error
     self.description = 'The conditional request failed'
   end
+
+  class ProvisionedThroughputExceededException < Error
+    self.description = 'The level of configured provisioned throughput for ' +
+      'the table was exceeded. Consider increasing your provisioning level ' +
+      'with the UpdateTable API'
+  end
 end

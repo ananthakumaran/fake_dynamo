@@ -11,6 +11,11 @@ module FakeDynamo
       status = 200
       content_type 'application/x-amz-json-1.0'
       begin
+        if settings.throws
+          status = 400
+          log.info "Whoops!"
+          raise ProvisionedThroughputExceededException
+        end
         data = JSON.parse(request.body.read)
         operation = extract_operation(request.env)
         log.info "operation #{operation}"
