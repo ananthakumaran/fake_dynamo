@@ -69,6 +69,11 @@ module FakeDynamo
         subject.put('xxx', { 'S' => 'new'} )
         subject.attributes['xxx'].should eq(Attribute.new('xxx', 'new', 'S'))
       end
+
+      it "should order a set by name" do
+        subject.put('set', {'SS' => ['3', '1', '2']})
+        subject.attributes['set'].value.should == ['1', '2', '3']
+      end
     end
 
     context "#add" do

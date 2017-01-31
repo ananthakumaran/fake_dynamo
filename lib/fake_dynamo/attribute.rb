@@ -21,6 +21,7 @@ module FakeDynamo
       if ['NS', 'SS', 'BS'].include? @type
         raise ValidationException, 'An AttributeValue may not contain an empty set' if @value.empty?
         raise ValidationException, 'Input collection contains duplicates' if value.uniq!
+        value.sort!
       end
 
       if ['S', 'SS', 'S', 'BS'].include? @type
